@@ -419,7 +419,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 items: _years.map((y) => DropdownMenuItem(value: y['yr_id'].toString(), child: Text(y['yrlabel']))).toList(),
                 onChanged: (v) => setState(() {
                   _selectedYrId = v;
-                  _selectedYrLabel = _years.firstWhere((y) => y['yr_id'].toString() == v)['yrlabel'];
+                  _selectedYrLabel = v == null ? null : _years.firstWhere((y) => y['yr_id'].toString() == v, orElse: () => {})['yrlabel'];
                 }),
                 validator: (v) => v == null ? 'Required' : null,
               )),
@@ -494,22 +494,24 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 )).toList(),
                 onChanged: (v) => setState(() {
                   _selectedConId = v;
-                  _selectedConDesc = _concessions.firstWhere((c) => c['con_id'].toString() == v)['condesc'];
+                  _selectedConDesc = v == null ? null : _concessions.firstWhere((c) => c['con_id'].toString() == v, orElse: () => {})['condesc'];
                 }),
               )),
-              _field(label: 'Address', width: 500, child: TextFormField(
+              _field(label: 'Address *', width: 500, child: TextFormField(
                 controller: _addressController,
                 decoration: _dec('Enter address'),
                 maxLines: 2,
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               )),
               _field(label: 'City', child: TextFormField(controller: _cityController, decoration: _dec('Enter city'))),
               _field(label: 'State', child: TextFormField(controller: _stateController, decoration: _dec('Enter state'))),
               _field(label: 'Country', child: TextFormField(controller: _countryController, decoration: _dec('Enter country'))),
-              _field(label: 'Pin Code', child: TextFormField(
+              _field(label: 'Pin Code *', child: TextFormField(
                 controller: _pinController,
                 decoration: _dec('Enter pin'),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               )),
             ],
           ),
@@ -548,21 +550,25 @@ class _StudentsScreenState extends State<StudentsScreen> {
             spacing: 16,
             runSpacing: 16,
             children: _selectedParentTab == 'Father'
-                ? _parentFields(_fatherNameController, _fatherMobileController, _fatherOccController, 'Father')
+                ? _parentFields(_fatherNameController, _fatherMobileController, _fatherOccController, 'Father', mandatory: false)
                 : _selectedParentTab == 'Mother'
-                    ? _parentFields(_motherNameController, _motherMobileController, _motherOccController, 'Mother')
-                    : _parentFields(_guardianNameController, _guardianMobileController, _guardianOccController, 'Guardian'),
+                    ? _parentFields(_motherNameController, _motherMobileController, _motherOccController, 'Mother', mandatory: true)
+                    : _parentFields(_guardianNameController, _guardianMobileController, _guardianOccController, 'Guardian', mandatory: false),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _parentFields(TextEditingController nameC, TextEditingController mobC, TextEditingController occC, String prefix) => [
-    _field(label: '$prefix Name', width: 280, child: TextFormField(controller: nameC, decoration: _dec('Enter $prefix name'))),
-    _field(label: '$prefix Mobile', child: TextFormField(controller: mobC, decoration: _dec('Enter mobile'), keyboardType: TextInputType.phone, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
-    _field(label: '$prefix Occupation', child: TextFormField(controller: occC, decoration: _dec('Enter occupation'))),
-  ];
+  List<Widget> _parentFields(TextEditingController nameC, TextEditingController mobC, TextEditingController occC, String prefix, {bool mandatory = true}) {
+    final suffix = mandatory ? ' *' : '';
+    final validator = mandatory ? (String? v) => (v == null || v.isEmpty) ? 'Required' : null : null;
+    return [
+      _field(label: '$prefix Name$suffix', width: 280, child: TextFormField(controller: nameC, decoration: _dec('Enter $prefix name'), validator: validator)),
+      _field(label: '$prefix Mobile$suffix', child: TextFormField(controller: mobC, decoration: _dec('Enter mobile'), keyboardType: TextInputType.phone, inputFormatters: [FilteringTextInputFormatter.digitsOnly], validator: validator)),
+      _field(label: '$prefix Occupation$suffix', child: TextFormField(controller: occC, decoration: _dec('Enter occupation'), validator: validator)),
+    ];
+  }
 
   // ─── Payment in Charge ────────────────────────────────────────────────────────
 
@@ -574,8 +580,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
         spacing: 16,
         runSpacing: 16,
         children: [
-          _field(label: 'Name', width: 280, child: TextFormField(controller: _payNameController, decoration: _dec('Enter name'))),
-          _field(label: 'Mobile Number', child: TextFormField(controller: _payMobileController, decoration: _dec('Enter mobile'), keyboardType: TextInputType.phone, inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+          _field(label: 'Name *', width: 280, child: TextFormField(controller: _payNameController, decoration: _dec('Enter name'), validator: (v) => (v == null || v.isEmpty) ? 'Required' : null)),
+          _field(label: 'Mobile Number *', child: TextFormField(controller: _payMobileController, decoration: _dec('Enter mobile'), keyboardType: TextInputType.phone, inputFormatters: [FilteringTextInputFormatter.digitsOnly], validator: (v) => (v == null || v.isEmpty) ? 'Required' : null)),
         ],
       ),
     );
