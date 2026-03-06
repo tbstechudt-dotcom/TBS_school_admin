@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/auth_provider.dart';
 import '../../services/supabase_service.dart';
-import '../../models/student_model.dart';
 
 const _classOrder = ['PKG', 'LKG', 'UKG', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
@@ -149,37 +148,15 @@ class _FeeCollectionTabState extends State<_FeeCollectionTab> with AutomaticKeep
 
     setState(() => _isLoading = true);
 
-    final results = await Future.wait([
-      SupabaseService.getPaymentsByDateRange(
-        insId,
-        fromDate: _fromDate,
-        toDate: _toDate,
-      ),
-      SupabaseService.getFeeDemands(insId),
+    // Stage 1: Fast — payments + fee group map (no pagination loops)
+    final fastResults = await Future.wait([
+      SupabaseService.getPaymentsByDateRange(insId, fromDate: _fromDate, toDate: _toDate),
       SupabaseService.getFeeGroupMap(insId),
-      SupabaseService.getStudents(insId),
     ]);
 
-    final payments = results[0] as List<Map<String, dynamic>>;
-    final demands = results[1] as List<Map<String, dynamic>>;
-    final feeGroupMap = results[2] as Map<int, String>;
-    final students = results[3] as List<StudentModel>;
+    final payments = fastResults[0] as List<Map<String, dynamic>>;
+    final feeGroupMap = fastResults[1] as Map<int, String>;
 
-    // Build student name maps
-    final stuIdToName = <int, String>{};
-    final admNoToName = <String, String>{};
-    for (final s in students) {
-      stuIdToName[s.stuId] = s.stuname;
-      admNoToName[s.stuadmno] = s.stuname;
-    }
-
-    // Compute pending fees from demands
-    double pendingFees = 0;
-    for (final d in demands) {
-      pendingFees += (d['balancedue'] as num?)?.toDouble() ?? 0;
-    }
-
-    // Compute today's collection from payments
     final today = DateTime.now();
     final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     double todayCollection = 0;
@@ -203,20 +180,46 @@ class _FeeCollectionTabState extends State<_FeeCollectionTab> with AutomaticKeep
       }
       return _DateGroup(date: e.key, payments: e.value, totalAmount: total);
     }).toList();
-
     dateGroups.sort((a, b) => b.date.compareTo(a.date));
 
+    // Show table immediately — no waiting for heavy data
     if (mounted) {
       setState(() {
         _payments = payments;
         _dateGroups = dateGroups;
-        _pendingFees = pendingFees;
         _todayCollection = todayCollection;
-        _demands = demands;
         _feeGroupMap = feeGroupMap;
+        _isLoading = false;
+      });
+    }
+
+    // Stage 2: Background — demands + student names (lightweight columns only)
+    final slowResults = await Future.wait([
+      SupabaseService.getFeeDemands(insId),
+      SupabaseService.getStudentNameMap(insId),
+    ]);
+
+    final demands = slowResults[0] as List<Map<String, dynamic>>;
+    final studentNameMap = slowResults[1] as Map<int, Map<String, String>>;
+
+    double pendingFees = 0;
+    for (final d in demands) {
+      pendingFees += (d['balancedue'] as num?)?.toDouble() ?? 0;
+    }
+
+    final stuIdToName = <int, String>{};
+    final admNoToName = <String, String>{};
+    for (final entry in studentNameMap.entries) {
+      stuIdToName[entry.key] = entry.value['stuname'] ?? '';
+      admNoToName[entry.value['stuadmno'] ?? ''] = entry.value['stuname'] ?? '';
+    }
+
+    if (mounted) {
+      setState(() {
+        _demands = demands;
+        _pendingFees = pendingFees;
         _stuIdToName = stuIdToName;
         _admNoToName = admNoToName;
-        _isLoading = false;
       });
     }
   }
