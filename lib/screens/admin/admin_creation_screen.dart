@@ -24,26 +24,36 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
   final _passwordController = TextEditingController();
 
   String? _selectedDesignation;
+  int? _selectedDesId;
   int? _selectedReportTo;
   String? _selectedRole;
   InstitutionUserModel? _selectedUser; // for drilldown
 
-  final List<String> _designations = [
-    'Principal',
-    'Admin',
-    'Teacher',
-    'Office Staff',
-  ];
-
-  final List<Map<String, dynamic>> _roles = [
-    {'id': 1, 'name': 'Admin'},
-    {'id': 2, 'name': 'User'},
-  ];
+  List<Map<String, dynamic>> _designationsList = [];
+  List<Map<String, dynamic>> _rolesList = [];
 
   @override
   void initState() {
     super.initState();
     _fetchUsers();
+    _fetchDesignations();
+    _fetchRoles();
+  }
+
+  Future<void> _fetchDesignations() async {
+    final auth = context.read<AuthProvider>();
+    final insId = auth.insId;
+    if (insId == null) return;
+    final list = await SupabaseService.getDesignations(insId);
+    if (mounted) setState(() => _designationsList = list);
+  }
+
+  Future<void> _fetchRoles() async {
+    final auth = context.read<AuthProvider>();
+    final insId = auth.insId;
+    if (insId == null) return;
+    final list = await SupabaseService.getRoles(insId);
+    if (mounted) setState(() => _rolesList = list);
   }
 
   @override
@@ -85,8 +95,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
     final inscode = auth.inscode;
     if (insId == null) return;
 
-    final roleData = _roles.firstWhere((r) => r['name'] == _selectedRole);
-    final desIndex = _designations.indexOf(_selectedDesignation!);
+    final roleData = _rolesList.firstWhere((r) => r['urname'] == _selectedRole);
 
     final data = {
       'ins_id': insId,
@@ -98,9 +107,9 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
       'usestadate': DateTime.now().toIso8601String().split('T').first,
       'useotpstatus': 0,
       'usedob': '2000-01-01',
-      'ur_id': roleData['id'],
+      'ur_id': roleData['ur_id'],
       'urname': _selectedRole,
-      'des_id': desIndex + 1,
+      'des_id': _selectedDesId,
       'desname': _selectedDesignation,
       'userepto': _selectedReportTo ?? 0,
       'activestatus': 1,
@@ -137,6 +146,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
     _passwordController.clear();
     setState(() {
       _selectedDesignation = null;
+      _selectedDesId = null;
       _selectedReportTo = null;
       _selectedRole = null;
     });
@@ -222,10 +232,22 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
             DropdownButtonFormField<String>(
               value: _selectedDesignation,
               decoration: _inputDecoration('Select designation'),
-              items: _designations
-                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+              items: _designationsList
+                  .map((d) => DropdownMenuItem(
+                        value: d['desname'] as String,
+                        child: Text(d['desname'] as String),
+                      ))
                   .toList(),
-              onChanged: (v) => setState(() => _selectedDesignation = v),
+              onChanged: (v) {
+                final match = _designationsList.firstWhere(
+                  (d) => d['desname'] == v,
+                  orElse: () => {},
+                );
+                setState(() {
+                  _selectedDesignation = v;
+                  _selectedDesId = match['des_id'] as int?;
+                });
+              },
               validator: (v) => v == null ? 'Required' : null,
             ),
             const SizedBox(height: 16),
@@ -261,10 +283,10 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
             DropdownButtonFormField<String>(
               value: _selectedRole,
               decoration: _inputDecoration('Select role'),
-              items: _roles
+              items: _rolesList
                   .map((r) => DropdownMenuItem(
-                      value: r['name'] as String,
-                      child: Text(r['name'] as String)))
+                      value: r['urname'] as String,
+                      child: Text(r['urname'] as String)))
                   .toList(),
               onChanged: (v) => setState(() => _selectedRole = v),
               validator: (v) => v == null ? 'Required' : null,
