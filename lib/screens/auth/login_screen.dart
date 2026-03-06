@@ -36,14 +36,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      await authProvider.saveCredentials(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 900;
+    final isDesktop = size.width > 600;
 
     return Scaffold(
       body: Row(
