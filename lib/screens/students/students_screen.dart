@@ -138,27 +138,38 @@ class _StudentsScreenState extends State<StudentsScreen> {
     final auth = context.read<AuthProvider>();
     final insId = auth.insId ?? 1;
 
-    final years = await SupabaseService.getYears(insId);
-    final concessions = await SupabaseService.getConcessions(insId);
-    final rawClasses = await SupabaseService.getClasses(insId);
-    final insInfo = await SupabaseService.getInstitutionInfo(insId);
-    final students = await SupabaseService.getStudents(insId);
+    // Load lightweight data in parallel so class list appears immediately
+    final results = await Future.wait<dynamic>([
+      SupabaseService.getYears(insId),
+      SupabaseService.getConcessions(insId),
+      SupabaseService.getClasses(insId),
+      SupabaseService.getInstitutionInfo(insId),
+    ]);
+
+    if (!mounted) return;
+    final years = results[0] as List<Map<String, dynamic>>;
+    final concessions = results[1] as List<Map<String, dynamic>>;
+    final rawClasses = results[2] as List<String>;
+    final insInfo = results[3] as ({String? name, String? logo});
     final ordered = _classOrder.where((c) => rawClasses.contains(c)).toList();
     final extra = rawClasses.where((c) => !_classOrder.contains(c)).toList();
 
-    if (!mounted) return;
     setState(() {
       _years = years;
       _concessions = concessions;
       _classes = [...ordered, ...extra];
       _insName = insInfo.name;
       _insLogo = insInfo.logo;
-      _students = students;
       if (years.isNotEmpty) {
         _selectedYrId = years.first['yr_id'].toString();
         _selectedYrLabel = years.first['yrlabel'];
       }
     });
+
+    // Load students in background — class list is already visible
+    final students = await SupabaseService.getStudents(insId);
+    if (!mounted) return;
+    setState(() => _students = students);
 
     // Auto-select initial student if provided
     if (widget.initialStudent != null) {
