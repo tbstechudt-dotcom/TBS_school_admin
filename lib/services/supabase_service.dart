@@ -355,30 +355,63 @@ class SupabaseService {
 
   /// Get all fee demands for an institution (with student name)
   static Future<List<Map<String, dynamic>>> getFeeDemands(int insId) async {
+    const batchSize = 1000;
+    final List<Map<String, dynamic>> allResults = [];
+    bool useJoin = true;
+    int offset = 0;
+
+    // Test join on first batch
     try {
-      final response = await client
+      final firstBatch = await client
           .from('feedemand')
           .select('*, students(stuname)')
           .eq('ins_id', insId)
           .eq('activestatus', 1)
-          .order('stuclass', ascending: true);
-      return List<Map<String, dynamic>>.from(response as List);
+          .order('stuclass', ascending: true)
+          .range(0, batchSize - 1);
+      allResults.addAll(List<Map<String, dynamic>>.from(firstBatch as List));
+      if ((firstBatch as List).length < batchSize) return allResults;
+      offset = batchSize;
     } catch (e) {
-      debugPrint('Error fetching fee demands: $e');
-      // Fallback without student join
+      debugPrint('Left join failed in getFeeDemands, using fallback: $e');
+      useJoin = false;
+      // Fetch first batch without join
       try {
-        final response = await client
+        final firstBatch = await client
             .from('feedemand')
             .select('*')
             .eq('ins_id', insId)
             .eq('activestatus', 1)
-            .order('stuclass', ascending: true);
-        return List<Map<String, dynamic>>.from(response as List);
+            .order('stuclass', ascending: true)
+            .range(0, batchSize - 1);
+        allResults.addAll(List<Map<String, dynamic>>.from(firstBatch as List));
+        if ((firstBatch as List).length < batchSize) return allResults;
+        offset = batchSize;
       } catch (e2) {
         debugPrint('Error fetching fee demands (fallback): $e2');
         return [];
       }
     }
+
+    // Fetch remaining batches
+    try {
+      while (true) {
+        final selectStr = useJoin ? '*, students(stuname)' : '*';
+        final batch = await client
+            .from('feedemand')
+            .select(selectStr)
+            .eq('ins_id', insId)
+            .eq('activestatus', 1)
+            .order('stuclass', ascending: true)
+            .range(offset, offset + batchSize - 1);
+        allResults.addAll(List<Map<String, dynamic>>.from(batch as List));
+        if ((batch as List).length < batchSize) break;
+        offset += batchSize;
+      }
+    } catch (e) {
+      debugPrint('Error fetching remaining fee demands: $e');
+    }
+    return allResults;
   }
 
   /// Get fee collection summary for an institution
@@ -443,26 +476,13 @@ class SupabaseService {
   }) async {
     try {
       final from = fromDate.toIso8601String().split('T').first;
-      final to = toDate.toIso8601String().split('T').first;
-      final response = await client
-          .from('payment')
-          .select('*, students!inner(stuname, stuadmno, stuclass)')
-          .eq('ins_id', insId)
-          .eq('activestatus', 1)
-          .eq('paystatus', 'C')
-          .gte('paydate', from)
-          .lte('paydate', to)
-          .order('paydate', ascending: false);
-      return List<Map<String, dynamic>>.from(response as List);
-    } catch (e) {
-      debugPrint('Error fetching payments by date range: $e');
-      // Fallback without student join (in case of FK issue)
+      final to = '${toDate.toIso8601String().split('T').first}T23:59:59';
+
+      // Try with student join first
       try {
-        final from = fromDate.toIso8601String().split('T').first;
-        final to = toDate.toIso8601String().split('T').first;
         final response = await client
             .from('payment')
-            .select('*')
+            .select('*, students(stuname, stuadmno, stuclass)')
             .eq('ins_id', insId)
             .eq('activestatus', 1)
             .eq('paystatus', 'C')
@@ -470,10 +490,107 @@ class SupabaseService {
             .lte('paydate', to)
             .order('paydate', ascending: false);
         return List<Map<String, dynamic>>.from(response as List);
-      } catch (e2) {
-        debugPrint('Error fetching payments (fallback): $e2');
-        return [];
+      } catch (e) {
+        debugPrint('Left join failed, trying fallback: $e');
       }
+
+      // Fallback: fetch payments then manually look up students
+      final response = await client
+          .from('payment')
+          .select('*')
+          .eq('ins_id', insId)
+          .eq('activestatus', 1)
+          .eq('paystatus', 'C')
+          .gte('paydate', from)
+          .lte('paydate', to)
+          .order('paydate', ascending: false);
+      final payments = List<Map<String, dynamic>>.from(response as List);
+
+      // Collect unique stu_ids and fetch student info
+      final stuIds = payments
+          .map((p) => p['stu_id'])
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (stuIds.isNotEmpty) {
+        final students = await client
+            .from('students')
+            .select('stu_id, stuname, stuadmno, stuclass')
+            .inFilter('stu_id', stuIds);
+        final stuMap = <int, Map<String, dynamic>>{};
+        for (final s in (students as List)) {
+          stuMap[s['stu_id'] as int] = s;
+        }
+        for (final p in payments) {
+          final stuId = p['stu_id'];
+          if (stuId != null && stuMap.containsKey(stuId)) {
+            p['students'] = stuMap[stuId];
+          }
+        }
+      }
+
+      return payments;
+    } catch (e) {
+      debugPrint('Error fetching payments by date range: $e');
+      return [];
+    }
+  }
+
+  /// Get fee details for a payment, with fee group name lookup
+  static Future<List<Map<String, dynamic>>> getFeeDetailsByPayId(int payId, {int? insId}) async {
+    try {
+      final response = await client
+          .from('feedemand')
+          .select('demfeeterm, demfeetype, fee_id, feeamount, conamount, paidamount, balancedue, paidstatus')
+          .eq('pay_id', payId)
+          .eq('activestatus', 1);
+      final details = List<Map<String, dynamic>>.from(response as List);
+
+      // Fetch fee group names via fee_id → feetype → feegroup
+      if (details.isNotEmpty) {
+        try {
+          final feeIds = details
+              .map((d) => d['fee_id'])
+              .where((id) => id != null)
+              .toSet()
+              .toList();
+          if (feeIds.isNotEmpty) {
+            final feeTypes = await client
+                .from('feetype')
+                .select('fee_id, feedesc, fg_id')
+                .inFilter('fee_id', feeIds)
+                .eq('activestatus', 1);
+            final feeIdToFgId = <int, int>{};
+            final fgIds = <int>{};
+            for (final ft in (feeTypes as List)) {
+              feeIdToFgId[ft['fee_id'] as int] = ft['fg_id'] as int;
+              fgIds.add(ft['fg_id'] as int);
+            }
+            final feeGroups = await client
+                .from('feegroup')
+                .select('fg_id, fgdesc')
+                .inFilter('fg_id', fgIds.toList());
+            final fgMap = <int, String>{};
+            for (final fg in (feeGroups as List)) {
+              fgMap[fg['fg_id'] as int] = fg['fgdesc']?.toString() ?? '';
+            }
+            for (final d in details) {
+              final feeId = d['fee_id'] as int?;
+              if (feeId != null && feeIdToFgId.containsKey(feeId)) {
+                d['feegroupname'] = fgMap[feeIdToFgId[feeId]] ?? '';
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Error fetching fee group names: $e');
+        }
+      }
+
+      return details;
+    } catch (e) {
+      debugPrint('Error fetching fee details for pay_id $payId: $e');
+      return [];
     }
   }
 
