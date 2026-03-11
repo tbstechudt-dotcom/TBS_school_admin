@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_routes.dart';
 import '../../utils/auth_provider.dart';
-import '../../widgets/dashboard_sidebar.dart';
-import '../../widgets/stat_card.dart';
-import '../../widgets/attendance_chart.dart';
-import '../../widgets/recent_activities.dart';
-import '../../widgets/upcoming_events.dart';
-import '../../widgets/quick_actions.dart';
+import '../../services/supabase_service.dart';
+import '../../models/student_model.dart';
+import '../students/students_screen.dart';
+import '../fees/fee_collection_screen.dart';
+import '../transactions/failed_transactions_screen.dart';
+import '../admin/admin_creation_screen.dart';
+import '../admin/settings_screen.dart';
+import '../notices/notices_screen.dart';
+import '../notifications/notification_screen.dart';
+import '../fees/fee_demand_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,24 +25,173 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedNavIndex = 0;
   bool _sidebarCollapsed = false;
 
-  final List<_NavItem> _navItems = [
+  // Global search
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  final LayerLink _searchLayerLink = LayerLink();
+  OverlayEntry? _searchOverlay;
+  List<StudentModel> _allStudents = [];
+  List<StudentModel> _searchResults = [];
+
+
+  static const List<_NavItem> _allNavItems = [
     _NavItem(Icons.dashboard_rounded, 'Dashboard'),
     _NavItem(Icons.people_alt_rounded, 'Students'),
-    _NavItem(Icons.school_rounded, 'Teachers'),
-    _NavItem(Icons.class_rounded, 'Classes'),
-    _NavItem(Icons.event_note_rounded, 'Attendance'),
-    _NavItem(Icons.assessment_rounded, 'Exams'),
-    _NavItem(Icons.account_balance_wallet_rounded, 'Fees'),
-    _NavItem(Icons.calendar_month_rounded, 'Calendar'),
+    _NavItem(Icons.request_page_rounded, 'Fee Demand'),
+    _NavItem(Icons.receipt_long_rounded, 'Transactions'),
+    _NavItem(Icons.admin_panel_settings_rounded, 'User Creation', adminOnly: true),
+    _NavItem(Icons.settings_rounded, 'Designation & Role', adminOnly: true),
     _NavItem(Icons.notifications_rounded, 'Notices'),
-    _NavItem(Icons.settings_rounded, 'Settings'),
+    _NavItem(Icons.notifications_active_rounded, 'Notifications'),
   ];
+
+  late List<_NavItem> _navItems;
+
+  List<_NavItem> _getNavItems(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final isAdmin = auth.currentUser?.urname == 'Admin';
+    if (isAdmin) return _allNavItems.toList();
+    return _allNavItems.where((item) => !item.adminOnly).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentsForSearch();
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus) {
+        // Delay removal so overlay tap events can fire first
+        Future.delayed(const Duration(milliseconds: 200), () {
+          _removeSearchOverlay();
+        });
+      }
+    });
+  }
+
+  Future<void> _loadStudentsForSearch() async {
+    final auth = context.read<AuthProvider>();
+    final insId = auth.insId;
+    if (insId == null) return;
+    _allStudents = await SupabaseService.getStudents(insId);
+  }
+
+  void _onSearchChanged(String query) {
+    if (query.trim().isEmpty) {
+      _removeSearchOverlay();
+      _searchResults = [];
+      return;
+    }
+    final q = query.toLowerCase();
+    _searchResults = _allStudents.where((s) =>
+      s.stuname.toLowerCase().contains(q) ||
+      s.stuadmno.toLowerCase().contains(q)
+    ).take(10).toList();
+    _showSearchOverlay();
+  }
+
+  void _showSearchOverlay() {
+    _removeSearchOverlay();
+    if (_searchResults.isEmpty) return;
+    _searchOverlay = OverlayEntry(builder: (context) => _buildSearchOverlay());
+    Overlay.of(context).insert(_searchOverlay!);
+  }
+
+  void _removeSearchOverlay() {
+    _searchOverlay?.remove();
+    _searchOverlay = null;
+  }
+
+  StudentModel? _navigateToStudent;
+
+  void _onStudentSelected(StudentModel student) {
+    _removeSearchOverlay();
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    setState(() {
+      _navigateToStudent = student;
+      _selectedNavIndex = 1; // Students tab
+    });
+  }
+
+
+  Widget _buildSearchOverlay() {
+    return Positioned(
+      width: 350,
+      child: CompositedTransformFollower(
+        link: _searchLayerLink,
+        showWhenUnlinked: false,
+        offset: const Offset(0, 48),
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            constraints: const BoxConstraints(maxHeight: 400),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              shrinkWrap: true,
+              itemCount: _searchResults.length,
+              itemBuilder: (context, index) {
+                final s = _searchResults[index];
+                return InkWell(
+                  onTap: () => _onStudentSelected(s),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+                          child: s.stuphoto != null && s.stuphoto!.startsWith('http')
+                              ? ClipOval(child: Image.network(s.stuphoto!, width: 36, height: 36, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Text(s.stuname[0].toUpperCase(), style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 14))))
+                              : Text(s.stuname[0].toUpperCase(), style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 14)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(s.stuname, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text('${s.stuadmno}  •  Class ${s.stuclass}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        Text(s.stumobile, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _removeSearchOverlay();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    _navItems = _getNavItems(context);
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 1100;
-    final isTablet = size.width > 700 && size.width <= 1100;
+    final isDesktop = size.width > 800;
+    final isTablet = size.width > 500 && size.width <= 800;
+
+    // Clamp selected index if nav items changed (e.g. role-based filtering)
+    if (_selectedNavIndex >= _navItems.length) {
+      _selectedNavIndex = 0;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -66,10 +218,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 // Content area
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isDesktop ? 28 : 16),
-                    child: _buildDashboardContent(context, isDesktop),
-                  ),
+                  child: _isFullHeightScreen()
+                      ? Padding(
+                          padding: EdgeInsets.all(isDesktop ? 28 : 16),
+                          child: _buildDashboardContent(context, isDesktop),
+                        )
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.all(isDesktop ? 28 : 16),
+                          child: _buildDashboardContent(context, isDesktop),
+                        ),
                 ),
               ],
             ),
@@ -80,8 +237,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildSidebar(BuildContext context, bool collapsed) {
-    final auth = context.watch<AuthProvider>();
-
     return Container(
       color: AppColors.primary,
       child: Column(
@@ -187,76 +342,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
-          // User profile at bottom
-          Container(
-            padding: EdgeInsets.all(collapsed ? 12 : 20),
-            margin: EdgeInsets.all(collapsed ? 8 : 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                  child: Text(
-                    (auth.userName ?? 'U')[0],
-                    style: const TextStyle(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (!collapsed) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          auth.userName ?? 'User',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          auth.userRole ?? 'Staff',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                    fontSize: 11,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      auth.logout();
-                      Navigator.pushReplacementNamed(
-                          context, AppRoutes.welcome);
-                    },
-                    child: Icon(
-                      Icons.logout_rounded,
-                      color: Colors.white.withValues(alpha: 0.5),
-                      size: 18,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
   Widget _buildTopBar(BuildContext context, bool isDesktop) {
+    final auth = context.watch<AuthProvider>();
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 28 : 16,
@@ -268,7 +361,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Row(
         children: [
-          if (!isDesktop && MediaQuery.of(context).size.width <= 700)
+          if (!isDesktop && MediaQuery.of(context).size.width <= 500)
             IconButton(
               onPressed: () => Scaffold.of(context).openDrawer(),
               icon: const Icon(Icons.menu_rounded),
@@ -310,26 +403,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // Search bar (desktop only)
           if (isDesktop)
-            Container(
-              width: 280,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search students, staff...',
-                  hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textLight,
-                        fontSize: 13,
-                      ),
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      size: 20, color: AppColors.textLight),
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+            CompositedTransformTarget(
+              link: _searchLayerLink,
+              child: Container(
+                width: 350,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or admission no...',
+                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textLight,
+                          fontSize: 13,
+                        ),
+                    prefixIcon: const Icon(Icons.search_rounded,
+                        size: 20, color: AppColors.textLight),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                  ),
                 ),
               ),
             ),
@@ -340,7 +448,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Stack(
             children: [
               IconButton(
-                onPressed: () {},
+                onPressed: () => setState(() => _selectedNavIndex = _navItems.indexWhere((i) => i.label == 'Notifications')),
                 icon: const Icon(Icons.notifications_outlined, size: 22),
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.surface,
@@ -363,136 +471,143 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+                  child: Text(
+                    (auth.userName ?? 'U')[0].toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isDesktop ? 180 : 120,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        auth.userName ?? 'User',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      Text(
+                        auth.userRole ?? 'Staff',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'Profile options',
+                  position: PopupMenuPosition.under,
+                  offset: const Offset(0, 8),
+                  color: Colors.white,
+                  elevation: 10,
+                  surfaceTintColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: AppColors.border),
+                  ),
+                  menuPadding: const EdgeInsets.symmetric(vertical: 6),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+                  onSelected: (value) async {
+                    if (value == 'signout') {
+                      await auth.logout();
+                      if (context.mounted) {
+                        Navigator.pushReplacementNamed(context, AppRoutes.welcome);
+                      }
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<String>(
+                      value: 'signout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout_rounded, size: 18),
+                          SizedBox(width: 8),
+                          Text('Sign out'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// Screens that manage their own scroll and need full bounded height
+  bool _isFullHeightScreen() {
+    final label = _navItems[_selectedNavIndex].label;
+    return label == 'Dashboard' || label == 'Students' || label == 'Fee Demand' || label == 'Transactions' || label == 'User Creation' || label == 'Designation & Role' || label == 'Notices' || label == 'Notifications';
   }
 
   Widget _buildDashboardContent(BuildContext context, bool isDesktop) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Stat cards
-        FadeInDown(
-          duration: const Duration(milliseconds: 400),
-          child: _buildStatCards(context, isDesktop),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Quick actions
-        FadeInDown(
-          delay: const Duration(milliseconds: 100),
-          duration: const Duration(milliseconds: 400),
-          child: const QuickActionsWidget(),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Charts & Activity row
-        if (isDesktop)
-          FadeInDown(
-            delay: const Duration(milliseconds: 200),
-            duration: const Duration(milliseconds: 400),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 6, child: const AttendanceChartWidget()),
-                const SizedBox(width: 24),
-                Expanded(flex: 4, child: const UpcomingEventsWidget()),
-              ],
-            ),
-          )
-        else ...[
-          FadeInDown(
-            delay: const Duration(milliseconds: 200),
-            child: const AttendanceChartWidget(),
-          ),
-          const SizedBox(height: 24),
-          FadeInDown(
-            delay: const Duration(milliseconds: 300),
-            child: const UpcomingEventsWidget(),
-          ),
-        ],
-
-        const SizedBox(height: 24),
-
-        // Recent activities
-        FadeInDown(
-          delay: const Duration(milliseconds: 300),
-          duration: const Duration(milliseconds: 400),
-          child: const RecentActivitiesWidget(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCards(BuildContext context, bool isDesktop) {
-    final stats = [
-      StatData(
-        label: 'Total Students',
-        value: '2,847',
-        change: '+12%',
-        isPositive: true,
-        icon: Icons.people_alt_rounded,
-        color: AppColors.accent,
-      ),
-      StatData(
-        label: 'Total Teachers',
-        value: '156',
-        change: '+3',
-        isPositive: true,
-        icon: Icons.school_rounded,
-        color: AppColors.info,
-      ),
-      StatData(
-        label: "Today's Attendance",
-        value: '94.2%',
-        change: '+1.3%',
-        isPositive: true,
-        icon: Icons.check_circle_outline_rounded,
-        color: AppColors.success,
-      ),
-      StatData(
-        label: 'Fee Collection',
-        value: '₹48.5L',
-        change: '78% target',
-        isPositive: true,
-        icon: Icons.account_balance_wallet_rounded,
-        color: AppColors.secondary,
-      ),
-    ];
-
-    if (isDesktop) {
-      return Row(
-        children: stats.map((stat) {
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: stat == stats.last ? 0 : 16,
-              ),
-              child: StatCard(data: stat),
-            ),
-          );
-        }).toList(),
-      );
+    final selectedMenu = _navItems[_selectedNavIndex].label;
+    if (selectedMenu == 'Students') {
+      final student = _navigateToStudent;
+      _navigateToStudent = null;
+      return StudentsScreen(key: student != null ? ValueKey(student.stuId) : null, initialStudent: student);
     }
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: stats.map((stat) {
-        return SizedBox(
-          width: (MediaQuery.of(context).size.width - 44) / 2,
-          child: StatCard(data: stat),
-        );
-      }).toList(),
-    );
+    if (selectedMenu == 'Fee Demand') {
+      return const FeeDemandScreen();
+    }
+    if (selectedMenu == 'Transactions') {
+      return const FailedTransactionsScreen();
+    }
+    if (selectedMenu == 'User Creation') {
+      return const AdminCreationScreen();
+    }
+    if (selectedMenu == 'Designation & Role') {
+      return const SettingsScreen();
+    }
+    if (selectedMenu == 'Notices') {
+      return const NoticesScreen();
+    }
+    if (selectedMenu == 'Notifications') {
+      return const NotificationScreen();
+    }
+    // Dashboard shows Fee Collection screen
+    return const FeeCollectionScreen();
   }
+
 }
 
 class _NavItem {
   final IconData icon;
   final String label;
-  const _NavItem(this.icon, this.label);
+  final bool adminOnly;
+  const _NavItem(this.icon, this.label, {this.adminOnly = false});
 }
+
