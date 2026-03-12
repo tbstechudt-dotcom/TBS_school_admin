@@ -959,13 +959,26 @@ class SupabaseService {
     }
   }
 
-  /// Get all transactions for an institution via RPC
+  /// Get all transactions for an institution via RPC, with direct table fallback
   static Future<List<Map<String, dynamic>>> getAllTransactions(int insId) async {
     try {
       final response = await client.rpc('fn_get_transactions', params: {'p_ins_id': insId});
-      return List<Map<String, dynamic>>.from(response as List);
+      final data = List<Map<String, dynamic>>.from(response as List);
+      if (data.isNotEmpty) return data;
     } catch (e) {
-      debugPrint('Error fetching transactions: $e');
+      debugPrint('RPC fn_get_transactions failed, falling back to direct query: $e');
+    }
+    // Fallback: query payment table directly (select all columns)
+    try {
+      final response = await client
+          .from('payment')
+          .select()
+          .eq('ins_id', insId)
+          .order('createdat', ascending: false);
+      debugPrint('Payment table fallback returned ${(response as List).length} records');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('Error fetching transactions from payment table: $e');
       return [];
     }
   }
