@@ -39,12 +39,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   static const List<_NavItem> _allNavItems = [
     _NavItem(Icons.dashboard_rounded, 'Dashboard'),
-    _NavItem(Icons.people_alt_rounded, 'Students', accountantHidden: true),
-    _NavItem(Icons.request_page_rounded, 'Fee Demand', accountantHidden: true),
-    _NavItem(Icons.payments_rounded, 'Fee Collection'),
     _NavItem(Icons.people_alt_rounded, 'Students'),
     _NavItem(Icons.request_page_rounded, 'Fee Demand'),
-
+    _NavItem(Icons.payments_rounded, 'Fee Collection', accountantOnly: true),
     _NavItem(Icons.receipt_long_rounded, 'Transactions'),
     _NavItem(Icons.approval_rounded, 'Fee Demand Approval', accountantOnly: true),
     _NavItem(Icons.admin_panel_settings_rounded, 'User Creation', adminOnly: true),
@@ -63,7 +60,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return _allNavItems.where((item) {
       if (item.adminOnly) return false;
       if (item.accountantOnly && !isAccountant) return false;
-      if (isAccountant && item.accountantHidden) return false;
       return true;
     }).toList();
   }
@@ -628,8 +624,7 @@ class _NavItem {
   final IconData icon;
   final String label;
   final bool adminOnly;
-  final bool accountantHidden;
   final bool accountantOnly;
-  const _NavItem(this.icon, this.label, {this.adminOnly = false, this.accountantHidden = false, this.accountantOnly = false});
+  const _NavItem(this.icon, this.label, {this.adminOnly = false, this.accountantOnly = false});
 }
 
