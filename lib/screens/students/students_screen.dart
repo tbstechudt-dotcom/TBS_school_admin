@@ -73,6 +73,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
   StudentModel? _selectedStudent;
   String? _selectedClassFilter; // null = show class list, non-null = show students of that class
   final _searchController = TextEditingController();
+  int _studentPage = 0;
+  static const int _studentsPerPage = 20;
 
   static const TextStyle _inputStyle = TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary);
 
@@ -598,12 +600,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
         // Use background-loaded count if available, else RPC count
         final count = _groupedStudents[className]?.length ?? _classCounts[className] ?? 0;
         final classColor = _getClassColor(className);
+        final isSelected = _selectedClassFilter == className;
         return Material(
-          color: Colors.transparent,
+          color: isSelected ? classColor.withValues(alpha: 0.1) : Colors.transparent,
           child: InkWell(
             onTap: () async {
               setState(() {
                 _selectedClassFilter = className;
+                _selectedStudent = null;
+                _studentPage = 0;
                 _searchController.clear();
               });
               // Lazy-load if background load hasn't provided this class yet
@@ -622,8 +627,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
+              decoration: BoxDecoration(
+                border: const Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
+                color: isSelected ? classColor.withValues(alpha: 0.08) : null,
               ),
               child: Row(
                 children: [
@@ -631,7 +637,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: classColor.withValues(alpha: 0.1),
+                      color: isSelected ? classColor.withValues(alpha: 0.2) : classColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(child: Icon(Icons.class_rounded, size: 18, color: classColor)),
@@ -641,7 +647,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Class $className', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                        Text('Class $className', style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, color: isSelected ? classColor : AppColors.textPrimary)),
                         Text('$count students', style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                       ],
                     ),
@@ -649,13 +655,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: classColor.withValues(alpha: 0.1),
+                      color: classColor.withValues(alpha: isSelected ? 0.2 : 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: classColor)),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textSecondary),
+                  Icon(isSelected ? Icons.check_circle_rounded : Icons.chevron_right_rounded, size: 18, color: isSelected ? classColor : AppColors.textSecondary),
                 ],
               ),
             ),
@@ -772,6 +778,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
     final classColor = _getClassColor(className);
 
+    // Search filter
+    final q = _searchController.text.toLowerCase();
+    final filteredStudents = q.isEmpty
+        ? allStudents
+        : allStudents.where((s) =>
+            s.stuname.toLowerCase().contains(q) ||
+            s.stuadmno.toLowerCase().contains(q)).toList();
+
+    // Pagination
+    final totalStudents = filteredStudents.length;
+    final totalPages = (totalStudents / _studentsPerPage).ceil();
+    if (_studentPage >= totalPages && totalPages > 0) _studentPage = totalPages - 1;
+    final startIdx = _studentPage * _studentsPerPage;
+    final endIdx = (startIdx + _studentsPerPage).clamp(0, totalStudents);
+    final pagedStudents = filteredStudents.sublist(startIdx, endIdx);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -781,15 +803,28 @@ class _StudentsScreenState extends State<StudentsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header with back button
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+            padding: const EdgeInsets.fromLTRB(10, 10, 20, 10),
             decoration: BoxDecoration(
               color: classColor.withValues(alpha: 0.04),
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
             ),
             child: Row(
               children: [
+                IconButton(
+                  onPressed: () => setState(() {
+                    _selectedClassFilter = null;
+                    _selectedStudent = null;
+                    _studentPage = 0;
+                    _searchController.clear();
+                  }),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  color: classColor,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  tooltip: 'Back to classes',
+                ),
                 Icon(Icons.class_rounded, size: 20, color: classColor),
                 const SizedBox(width: 8),
                 Text('Class $className', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: classColor)),
@@ -803,6 +838,25 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   child: Text('${allStudents.length} students', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: classColor)),
                 ),
                 const Spacer(),
+                // Search
+                SizedBox(
+                  width: 200,
+                  height: 34,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search...',
+                      hintStyle: const TextStyle(fontSize: 12),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+                      isDense: true,
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                    onChanged: (_) => setState(() => _studentPage = 0),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Tooltip(
                   message: 'Export $className',
                   child: InkWell(
@@ -832,46 +886,45 @@ class _StudentsScreenState extends State<StudentsScreen> {
           const Divider(height: 1, color: AppColors.border),
           // Table header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            color: AppColors.surface,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            color: const Color(0xFF2D3748),
             child: const Row(
               children: [
-                SizedBox(width: 40, child: Text('S No.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                SizedBox(width: 100, child: Text('Adm No', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                Expanded(child: Text('Student Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                SizedBox(width: 80, child: Text('Gender', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                SizedBox(width: 120, child: Text('Mobile', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                SizedBox(width: 40, child: Text('S NO.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                SizedBox(width: 100, child: Text('ADM NO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(child: Text('STUDENT NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                SizedBox(width: 80, child: Text('GENDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                SizedBox(width: 120, child: Text('MOBILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                SizedBox(width: 30),
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.border),
           // Student rows
           Expanded(
-            child: allStudents.isEmpty
-                ? const Center(child: Text('No students in this class', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)))
+            child: pagedStudents.isEmpty
+                ? const Center(child: Text('No students found', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)))
                 : ListView.builder(
                     padding: EdgeInsets.zero,
-                    itemCount: allStudents.length,
+                    itemCount: pagedStudents.length,
                     itemBuilder: (context, index) {
-                      final s = allStudents[index];
+                      final s = pagedStudents[index];
+                      final serialNo = startIdx + index + 1;
                       return InkWell(
                         onTap: () {
                           setState(() => _selectedStudent = s);
                           _populateStudentForm(s);
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: index.isEven ? Colors.white : AppColors.surface,
-                            border: const Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          color: index.isEven ? Colors.white : AppColors.surface,
                           child: Row(
                             children: [
-                              SizedBox(width: 40, child: Text('${index + 1}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                              SizedBox(width: 40, child: Text('$serialNo', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
                               SizedBox(width: 100, child: Text(s.stuadmno, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent))),
                               Expanded(child: Text(s.stuname, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis)),
                               SizedBox(width: 80, child: Text(s.stugender, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
                               SizedBox(width: 120, child: Text(s.stumobile, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                              const SizedBox(width: 30, child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.accent)),
                             ],
                           ),
                         ),
@@ -879,6 +932,48 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     },
                   ),
           ),
+          // Pagination footer
+          if (totalStudents > _studentsPerPage)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Showing ${totalStudents == 0 ? 0 : startIdx + 1}–$endIdx of $totalStudents students',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.first_page_rounded, size: 20),
+                    onPressed: _studentPage > 0 ? () => setState(() => _studentPage = 0) : null,
+                    tooltip: 'First page', splashRadius: 18,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                    onPressed: _studentPage > 0 ? () => setState(() => _studentPage--) : null,
+                    tooltip: 'Previous', splashRadius: 18,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(6)),
+                    child: Text('${_studentPage + 1}/$totalPages', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                    onPressed: _studentPage < totalPages - 1 ? () => setState(() => _studentPage++) : null,
+                    tooltip: 'Next', splashRadius: 18,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.last_page_rounded, size: 20),
+                    onPressed: _studentPage < totalPages - 1 ? () => setState(() => _studentPage = totalPages - 1) : null,
+                    tooltip: 'Last page', splashRadius: 18,
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -938,32 +1033,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                             ),
                           ],
                         ),
-                        if (_selectedClassFilter != null) ...[
-                          const SizedBox(height: 10),
-                          // Search (only when viewing students)
-                          TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Search students...',
-                              hintStyle: const TextStyle(fontSize: 12),
-                              prefixIcon: const Icon(Icons.search_rounded, size: 16),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
-                              isDense: true,
-                            ),
-                            style: const TextStyle(fontSize: 12),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ],
+                        const SizedBox(height: 0),
                       ],
                     ),
                   ),
                   const Divider(height: 1, color: AppColors.border),
-                  // Class list or Student list
+                  // Class list (always visible)
                   Expanded(
-                    child: _selectedClassFilter == null
-                        ? _buildClassList()
-                        : _buildStudentListForClass(_selectedClassFilter!),
+                    child: _buildClassList(),
                   ),
                 ],
               ),
@@ -978,6 +1055,46 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ? _buildClassStudentTable(_selectedClassFilter!)
                 : Column(
                     children: [
+                      // Back breadcrumb
+                      if (_selectedStudent != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: () => setState(() => _selectedStudent = null),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.arrow_back_rounded, size: 16, color: AppColors.accent),
+                                      SizedBox(width: 6),
+                                      Text('Back to Student List', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textSecondary),
+                              const SizedBox(width: 4),
+                              Text(_selectedStudent!.stuname, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                              const SizedBox(width: 6),
+                              Text('(${_selectedStudent!.stuadmno})', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
                       Expanded(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1092,7 +1209,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                                 style: OutlinedButton.styleFrom(
                                                   foregroundColor: AppColors.textSecondary,
                                                   side: const BorderSide(color: AppColors.border),
-                                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                 ),
                                               ),
@@ -1108,7 +1225,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor: AppColors.accent,
                                                   foregroundColor: Colors.white,
-                                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                 ),
                                               ),
@@ -1126,7 +1243,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: AppColors.error,
                                               foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                             ),
                                           ),
@@ -1981,7 +2098,7 @@ class _ExcelImportDialogState extends State<_ExcelImportDialog> {
 
   Widget _buildFilePickStep() {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -2141,7 +2258,7 @@ class _ExcelImportDialogState extends State<_ExcelImportDialog> {
             child: SingleChildScrollView(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: DataTable(
+                child: DataTable(dividerThickness: 0,
                   headingRowHeight: 72,
                   dataRowMinHeight: 36,
                   dataRowMaxHeight: 36,
@@ -2291,7 +2408,7 @@ class _ExcelImportDialogState extends State<_ExcelImportDialog> {
 
   Widget _buildDoneStep() {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -229,8 +229,10 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -647,9 +649,10 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
               label: const Text('Refresh'),
               style: OutlinedButton.styleFrom(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -875,19 +878,20 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
         child: SingleChildScrollView(
           child: SizedBox(
             width: double.infinity,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                  AppColors.primary.withValues(alpha: 0.05)),
+            child: DataTable(dividerThickness: 0,
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF2D3748)),
               headingTextStyle: const TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: AppColors.textPrimary,
+                fontSize: 11,
+                color: Colors.white,
               ),
               dataTextStyle: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textPrimary,
               ),
               columnSpacing: 20,
+              horizontalMargin: 16,
+              headingRowHeight: 42,
               columns: const [
                 DataColumn(label: Text('S No.')),
                 DataColumn(label: Text('Pay No')),
@@ -909,6 +913,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                 final date = t.paydate ?? t.createdat;
 
                 return DataRow(
+                  color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF7FAFC)),
                   cells: [
                     DataCell(Text('${i + 1}')),
                     DataCell(Text(t.paynumber ?? '${t.payId}')),
@@ -1014,19 +1019,20 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
         child: SingleChildScrollView(
           child: SizedBox(
             width: double.infinity,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                  AppColors.primary.withValues(alpha: 0.05)),
+            child: DataTable(dividerThickness: 0,
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF2D3748)),
               headingTextStyle: const TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: AppColors.textPrimary,
+                fontSize: 11,
+                color: Colors.white,
               ),
               dataTextStyle: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textPrimary,
               ),
               columnSpacing: 20,
+              horizontalMargin: 16,
+              headingRowHeight: 42,
               columns: const [
                 DataColumn(label: Text('S No.')),
                 DataColumn(label: Text('Pay No')),
@@ -1047,6 +1053,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                 final date = isPaid ? t.paydate : t.createdat;
 
                 return DataRow(
+                  color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF7FAFC)),
                   cells: [
                     DataCell(Text('${i + 1}')),
                     DataCell(Text(t.paynumber ?? '${t.payId}')),

@@ -555,8 +555,9 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
               icon: Icon(_showImport ? Icons.close : Icons.upload_file_rounded, size: 18),
               label: Text(_showImport ? 'Close Import' : 'Import CSV/Excel'),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 8),
@@ -565,8 +566,9 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Refresh'),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -598,7 +600,7 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
 
   Widget _buildForm() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -788,7 +790,7 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                           child: OutlinedButton(
                             onPressed: _resetForm,
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             child: const Text('Clear'),
@@ -806,7 +808,7 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.accent,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
@@ -1057,18 +1059,18 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
         children: [
           // Table header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF2D3748),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: const Row(
               children: [
-                SizedBox(width: 100, child: Text('Class', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
-                Expanded(child: Text('Students', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
-                Expanded(child: Text('Total Demand', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
-                Expanded(child: Text('Collected', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
-                Expanded(child: Text('Pending', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+                SizedBox(width: 100, child: Text('CLASS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(child: Text('STUDENTS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center)),
+                Expanded(child: Text('TOTAL DEMAND', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                Expanded(child: Text('COLLECTED', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                Expanded(child: Text('PENDING', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
                 SizedBox(width: 32),
               ],
             ),
@@ -1079,7 +1081,7 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
             child: ListView.separated(
               padding: EdgeInsets.zero,
               itemCount: summaries.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, __) => const SizedBox.shrink(),
               itemBuilder: (context, i) {
                 final s = summaries[i];
                 final className = s['stuclass']?.toString() ?? '-';
@@ -1090,20 +1092,14 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
 
                 return InkWell(
                   onTap: () => _loadDrilldown(className),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    color: i.isEven ? Colors.white : const Color(0xFFF7FAFC),
                     child: Row(
                       children: [
                         SizedBox(
                           width: 100,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text('Class $className', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary), textAlign: TextAlign.center),
-                          ),
+                          child: Text('Class $className', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                         ),
                         Expanded(child: Text('$studentCount', style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
                         Expanded(child: Text('₹${_formatAmount(totalDemand)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.right)),
@@ -1161,19 +1157,19 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
         children: [
           // Table header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF2D3748),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: const Row(
               children: [
-                SizedBox(width: 80, child: Text('Adm No', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
-                Expanded(flex: 2, child: Text('Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
-                Expanded(child: Text('Demand', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
-                Expanded(child: Text('Paid', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
-                Expanded(child: Text('Pending', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
-                SizedBox(width: 70, child: Text('Status', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
+                SizedBox(width: 80, child: Text('ADM NO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(flex: 2, child: Text('NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(child: Text('DEMAND', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                Expanded(child: Text('PAID', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                Expanded(child: Text('PENDING', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                SizedBox(width: 70, child: Text('STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center)),
                 SizedBox(width: 28),
               ],
             ),
@@ -1183,7 +1179,7 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
             child: ListView.separated(
               padding: EdgeInsets.zero,
               itemCount: students.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, __) => const SizedBox.shrink(),
               itemBuilder: (context, i) {
                 final s = students[i];
                 final admNo = s['stuadmno']?.toString() ?? '-';
@@ -1401,8 +1397,9 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1413,8 +1410,9 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF217346),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -1492,10 +1490,8 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                               final row = _rows[index];
                               final isEven = index % 2 == 0;
                               return Container(
-                                decoration: BoxDecoration(
-                                  color: isEven ? Colors.white : AppColors.surface,
-                                  border: Border(bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.5))),
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                color: isEven ? Colors.white : AppColors.surface,
                                 child: Row(
                                   children: [
                                     _gridDataCell('${index + 1}', width: 60, center: true),
@@ -1536,8 +1532,9 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                 icon: const Icon(Icons.check_circle_outline, size: 16),
                 label: const Text('Validate'),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1548,16 +1545,18 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: _resetImport,
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 child: const Text('Close'),
               ),

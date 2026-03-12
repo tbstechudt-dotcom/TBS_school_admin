@@ -309,11 +309,11 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
             foregroundColor: Colors.white,
             disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.4),
             disabledForegroundColor: Colors.white70,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             textStyle:
-                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
 
