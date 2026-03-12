@@ -602,50 +602,14 @@ class SupabaseService {
     }
   }
 
-  /// Fetch all rows from tempfeedemand with student names for the institution
+  /// Fetch pending fee demands for the institution via DB function.
+  /// Only returns rows for students with activestatus = 1.
   static Future<List<Map<String, dynamic>>> getFeeDemandsPending(int insId) async {
     try {
-      // Step 1: fetch tempfeedemand rows
       final response = await client
-          .from('tempfeedemand')
-          .select()
-          .eq('ins_id', insId);
-      final rows = List<Map<String, dynamic>>.from(response as List);
-      if (rows.isEmpty) return [];
-
-      // Step 2: collect unique stu_id values
-      final stuIds = rows
-          .map((r) => r['stu_id'])
-          .whereType<int>()
-          .toSet()
-          .toList();
-
-      // Step 3: batch-fetch student records
-      final Map<int, Map<String, dynamic>> stuMap = {};
-      if (stuIds.isNotEmpty) {
-        final students = await client
-            .from('students')
-            .select('stu_id, stuname, stuadmno, stuclass')
-            .inFilter('stu_id', stuIds);
-        for (final s in (students as List)) {
-          final id = s['stu_id'] as int?;
-          if (id != null) stuMap[id] = Map<String, dynamic>.from(s as Map);
-        }
-      }
-
-      // Step 4: merge student fields into each row
-      return rows.map((row) {
-        final m = Map<String, dynamic>.from(row);
-        final stuId = m['stu_id'] as int?;
-        final stu = stuId != null ? stuMap[stuId] : null;
-        if (stu != null) {
-          m['stuname'] ??= stu['stuname'];
-          m['stuclass'] ??= stu['stuclass'];
-          // only overwrite stuadmno if not already set
-          m['stuadmno'] ??= stu['stuadmno'];
-        }
-        return m;
-      }).toList();
+          .rpc('get_fee_demands_pending', params: {'p_ins_id': insId});
+      if (response == null) return [];
+      return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
       debugPrint('getFeeDemandsPending failed: $e');
       return [];
