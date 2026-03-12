@@ -65,15 +65,15 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
-        SupabaseService.getPaidTransactions(insId),
-        SupabaseService.getFailedTransactions(insId),
+        SupabaseService.getAllTransactions(insId),
         SupabaseService.getStudents(insId),
         SupabaseService.getInstitutionInfo(insId),
       ]);
 
-      final paidData = results[0] as List<Map<String, dynamic>>;
-      final failedData = results[1] as List<Map<String, dynamic>>;
-      final students = results[2] as List<StudentModel>;
+      final allData = results[0] as List<Map<String, dynamic>>;
+      final paidData = allData.where((t) => t['paystatus'] == 'C').toList();
+      final failedData = allData.where((t) => t['paystatus'] == 'F').toList();
+      final students = results[1] as List<StudentModel>;
 
       final stuIdToName = <int, String>{};
       final stuIdToStudent = <int, StudentModel>{};
@@ -82,7 +82,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
         stuIdToStudent[s.stuId] = s;
       }
 
-      final insInfo = results[3] as ({String? name, String? logo, String? address, String? mobile, String? email});
+      final insInfo = results[2] as ({String? name, String? logo, String? address, String? mobile, String? email});
 
       setState(() {
         _paidTransactions =
@@ -229,8 +229,10 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -508,34 +510,30 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                       ),
                     ],
                   ),
-                  // Status stamp overlay on table
+                  // Status stamp overlay – between Term and Fee Type columns
                   if (data.status == 'paid' || data.status == 'failed')
                     pw.Positioned(
-                      left: 0,
-                      right: 0,
-                      top: 40,
-                      child: pw.Center(
-                        child: pw.Opacity(
-                          opacity: 0.55,
-                          child: pw.Transform.rotateBox(
-                            angle: -0.52,
-                            child: pw.Container(
-                              padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                              decoration: pw.BoxDecoration(
-                                color: PdfColor.fromInt(data.status == 'paid' ? 0x66c2eecd : 0x66FFD6D6),
-                                borderRadius: pw.BorderRadius.circular(10),
-                                border: pw.Border.all(
-                                  color: data.status == 'paid' ? paidGreen : const PdfColor.fromInt(0xFFFF3B30),
-                                  width: 2.5,
-                                ),
+                      left: 120, top: 40,
+                      child: pw.Opacity(
+                        opacity: 0.55,
+                        child: pw.Transform.rotateBox(
+                          angle: -0.40,
+                          child: pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColor.fromInt(data.status == 'paid' ? 0x66c2eecd : 0x66FFD6D6),
+                              borderRadius: pw.BorderRadius.circular(10),
+                              border: pw.Border.all(
+                                color: data.status == 'paid' ? paidGreen : const PdfColor.fromInt(0xFFFF3B30),
+                                width: 2.5,
                               ),
-                              child: pw.Text(
-                                data.status == 'paid' ? 'PAID' : 'FAILED',
-                                style: pw.TextStyle(
-                                  font: fontSemiBold,
-                                  fontSize: 22,
-                                  color: data.status == 'paid' ? paidGreen : const PdfColor.fromInt(0xFFFF3B30),
-                                ),
+                            ),
+                            child: pw.Text(
+                              data.status == 'paid' ? 'PAID' : 'FAILED',
+                              style: pw.TextStyle(
+                                font: fontSemiBold,
+                                fontSize: 20,
+                                color: data.status == 'paid' ? paidGreen : const PdfColor.fromInt(0xFFFF3B30),
                               ),
                             ),
                           ),
@@ -651,9 +649,10 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
               label: const Text('Refresh'),
               style: OutlinedButton.styleFrom(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -879,21 +878,22 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
         child: SingleChildScrollView(
           child: SizedBox(
             width: double.infinity,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                  AppColors.primary.withValues(alpha: 0.05)),
+            child: DataTable(dividerThickness: 0,
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF2D3748)),
               headingTextStyle: const TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: AppColors.textPrimary,
+                fontSize: 11,
+                color: Colors.white,
               ),
               dataTextStyle: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textPrimary,
               ),
               columnSpacing: 20,
+              horizontalMargin: 16,
+              headingRowHeight: 42,
               columns: const [
-                DataColumn(label: Text('#')),
+                DataColumn(label: Text('S No.')),
                 DataColumn(label: Text('Pay No')),
                 DataColumn(label: Text('Student')),
                 DataColumn(label: Text('Amount')),
@@ -913,6 +913,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                 final date = t.paydate ?? t.createdat;
 
                 return DataRow(
+                  color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF7FAFC)),
                   cells: [
                     DataCell(Text('${i + 1}')),
                     DataCell(Text(t.paynumber ?? '${t.payId}')),
@@ -1018,21 +1019,22 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
         child: SingleChildScrollView(
           child: SizedBox(
             width: double.infinity,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                  AppColors.primary.withValues(alpha: 0.05)),
+            child: DataTable(dividerThickness: 0,
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF2D3748)),
               headingTextStyle: const TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: AppColors.textPrimary,
+                fontSize: 11,
+                color: Colors.white,
               ),
               dataTextStyle: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textPrimary,
               ),
               columnSpacing: 20,
+              horizontalMargin: 16,
+              headingRowHeight: 42,
               columns: const [
-                DataColumn(label: Text('#')),
+                DataColumn(label: Text('S No.')),
                 DataColumn(label: Text('Pay No')),
                 DataColumn(label: Text('Student')),
                 DataColumn(label: Text('Amount')),
@@ -1051,6 +1053,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                 final date = isPaid ? t.paydate : t.createdat;
 
                 return DataRow(
+                  color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF7FAFC)),
                   cells: [
                     DataCell(Text('${i + 1}')),
                     DataCell(Text(t.paynumber ?? '${t.payId}')),

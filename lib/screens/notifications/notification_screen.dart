@@ -35,9 +35,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
           .eq('ins_id', insId)
           .eq('activestatus', 1)
           .order('createdat', ascending: false);
+      // Deduplicate: group by title+body+type, show unique notifications only
+      final allNotifications = List<Map<String, dynamic>>.from(data);
+      final seen = <String>{};
+      final unique = <Map<String, dynamic>>[];
+      for (final n in allNotifications) {
+        final key = '${n['notititle']}|${n['notibody']}|${n['notitype']}';
+        if (!seen.contains(key)) {
+          seen.add(key);
+          unique.add(n);
+        }
+      }
       if (mounted) {
         setState(() {
-          _notifications = List<Map<String, dynamic>>.from(data);
+          _notifications = unique;
           _isLoading = false;
         });
       }
@@ -246,7 +257,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
           color: isRead ? Colors.white : AppColors.accent.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(12),

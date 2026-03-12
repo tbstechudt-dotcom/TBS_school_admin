@@ -199,7 +199,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
 
   Widget _buildCreationForm() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -363,7 +363,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
                   child: OutlinedButton(
                     onPressed: _clearForm,
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -378,7 +378,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -460,15 +460,15 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
           const Divider(height: 1),
           // Simplified table header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            color: AppColors.primary.withValues(alpha: 0.03),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            color: const Color(0xFF2D3748),
             child: const Row(
               children: [
-                SizedBox(width: 36, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                Expanded(flex: 3, child: Text('Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                Expanded(flex: 2, child: Text('Designation', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                Expanded(flex: 2, child: Text('Role', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                SizedBox(width: 70, child: Text('Status', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                SizedBox(width: 36, child: Text('S NO.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(flex: 3, child: Text('NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(flex: 2, child: Text('DESIGNATION', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(flex: 2, child: Text('ROLE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                SizedBox(width: 70, child: Text('STATUS', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
                 SizedBox(width: 30),
               ],
             ),
@@ -485,9 +485,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
                 onTap: () => setState(() => _selectedUser = u),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
-                  ),
+                  color: i.isEven ? Colors.white : AppColors.surface,
                   child: Row(
                     children: [
                       SizedBox(width: 36, child: Text('${i + 1}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
@@ -582,7 +580,9 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
                   tooltip: 'Back to list',
                 ),
                 const SizedBox(width: 4),
-                const Text('User Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                Icon(Icons.person_rounded, size: 18, color: AppColors.accent),
+                const SizedBox(width: 8),
+                const Text('User Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -655,7 +655,7 @@ class _AdminCreationScreenState extends State<AdminCreationScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.error,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
