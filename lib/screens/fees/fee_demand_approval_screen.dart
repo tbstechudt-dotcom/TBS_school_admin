@@ -316,47 +316,21 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
                 const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
-
         const SizedBox(width: 16),
 
-        // Class filter dropdown
-        Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String?>(
-              value: _selectedClass,
-              hint: const Text('All Classes',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.textPrimary),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: AppColors.textSecondary),
-              isDense: true,
-              onChanged: (v) => setState(() {
-                _selectedClass = v;
-                _selected.clear();
-                _currentPage = 1;
-              }),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('All Classes',
-                      style: TextStyle(fontSize: 12)),
-                ),
-                ..._classList.map((cls) => DropdownMenuItem<String?>(
-                      value: cls,
-                      child: Text('Class $cls',
-                          style: const TextStyle(fontSize: 12)),
-                    )),
-              ],
-            ),
-          ),
+        // Count
+        IconButton(
+          onPressed: _loading ? null : _loadDemands,
+          icon: const Icon(Icons.refresh_rounded, size: 20),
+          tooltip: 'Refresh',
+          color: AppColors.textSecondary,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${_filteredDemands.length} record${_filteredDemands.length == 1 ? '' : 's'}',
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
 
         const Spacer(),
@@ -367,7 +341,7 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search by student name or admission number...',
+              hintText: 'Search by student name or ad...',
               hintStyle:
                   TextStyle(fontSize: 12, color: Colors.grey.shade400),
               prefixIcon: const Icon(Icons.search_rounded, size: 18),
@@ -407,18 +381,44 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
         ),
         const SizedBox(width: 12),
 
-        // Refresh
-        IconButton(
-          onPressed: _loading ? null : _loadDemands,
-          icon: const Icon(Icons.refresh_rounded, size: 20),
-          tooltip: 'Refresh',
-          color: AppColors.textSecondary,
-        ),
-
-        // Count
-        Text(
-          '${_filteredDemands.length} record${_filteredDemands.length == 1 ? '' : 's'}',
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        // Class filter dropdown
+        Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: _selectedClass,
+              hint: const Text('All Classes',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textPrimary),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 18, color: AppColors.textSecondary),
+              isDense: true,
+              onChanged: (v) => setState(() {
+                _selectedClass = v;
+                _selected.clear();
+                _currentPage = 1;
+              }),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('All Classes',
+                      style: TextStyle(fontSize: 12)),
+                ),
+                ..._classList.map((cls) => DropdownMenuItem<String?>(
+                      value: cls,
+                      child: Text('Class $cls',
+                          style: const TextStyle(fontSize: 12)),
+                    )),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -497,8 +497,6 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
       );
     }
 
-    const scrollbarH = 18.0;
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -507,17 +505,14 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tableH = constraints.maxHeight - scrollbarH;
+          final tableH = constraints.maxHeight;
           return Column(
             children: [
               // ── Table (header + rows) ──────────────────────────────────
               SizedBox(
                 height: tableH,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  controller: _hScrollController,
-                  child: SizedBox(
-                    width: _tableWidth,
+                child: SizedBox(
+                  width: constraints.maxWidth,
                     child: Column(
                       children: [
                         // Header
@@ -532,21 +527,19 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
                           child: Row(
                             children: [
                               const SizedBox(width: 40),
-                              _headerCell('Adm No', _wAdmNo),
-                              _headerCell('Student Name', _wName),
-                              _headerCell('Class', _wClass, center: true),
-                              _headerCell('Year', _wYear, center: true),
-                              _headerCell('Fee Term', _wTerm, center: true),
-                              _headerCell('Fee Type', _wType),
-                              _headerCell('Category', _wCategory),
-                              _headerCell('Fee Amount', _wFeeAmt, right: true),
-                              _headerCell('Concession', _wConcession,
-                                  right: true),
-                              _headerCell('Balance Due', _wBalance,
-                                  right: true),
-                              const SizedBox(width: _colGap),
-                              _headerCell('Created By', _wCreatedBy),
-                              _headerCell('Status', _wStatus, center: true),
+                              _headerCell('Adm No', 3),
+                              _headerCell('Student Name', 5),
+                              _headerCell('Class', 2, center: true),
+                              _headerCell('Year', 3, center: true),
+                              _headerCell('Fee Term', 3, center: true),
+                              _headerCell('Fee Type', 4),
+                              _headerCell('Category', 2),
+                              _headerCell('Fee Amount', 3, right: true),
+                              _headerCell('Concession', 3, right: true),
+                              _headerCell('Balance Due', 3, right: true),
+                              const SizedBox(width: 32),
+                              _headerCell('Created By', 3),
+                              _headerCell('Status', 3, center: true),
                             ],
                           ),
                         ),
@@ -561,7 +554,7 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
                               separatorBuilder: (_, __) =>
                                   const Divider(height: 1),
                               itemBuilder: (context, i) =>
-                                  _buildRow(demands[i]),
+                                  _buildRow(demands[i], i),
                             ),
                           ),
                         ),
@@ -569,11 +562,6 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
                     ),
                   ),
                 ),
-              ),
-
-              // ── Custom Windows-style scrollbar ────────────────────────
-              _buildWinScrollbar(
-                  constraints.maxWidth, _tableWidth, scrollbarH),
             ],
           );
         },
@@ -717,12 +705,12 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
     );
   }
 
-  Widget _headerCell(String label, double width,
+  Widget _headerCell(String label, int flex,
       {bool center = false, bool right = false}) {
-    return SizedBox(
-      width: width,
+    return Expanded(
+      flex: flex,
       child: Text(
-        label,
+        label.toUpperCase(),
         style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -736,7 +724,7 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
     );
   }
 
-  Widget _buildRow(Map<String, dynamic> d) {
+  Widget _buildRow(Map<String, dynamic> d, int index) {
     final key = _demKey(d);
     final isSelected = _selected.contains(key);
 
@@ -774,8 +762,10 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
             ? Colors.grey.shade50
             : isSelected
                 ? AppColors.accent.withValues(alpha: 0.06)
-                : null,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                : index.isOdd
+                    ? const Color(0xFFF8F9FA)
+                    : Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
             children: [
               SizedBox(
@@ -787,8 +777,8 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
                 ),
               ),
               // Adm No
-              SizedBox(
-                width: _wAdmNo,
+              Expanded(
+                flex: 3,
                 child: Text(admNo,
                     style: const TextStyle(
                         fontSize: 12,
@@ -796,83 +786,83 @@ class _FeeDemandApprovalScreenState extends State<FeeDemandApprovalScreen> {
                         color: AppColors.primary)),
               ),
               // Student Name
-              SizedBox(
-                width: _wName,
+              Expanded(
+                flex: 5,
                 child: Text(name.isNotEmpty ? name : '-',
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textPrimary),
                     overflow: TextOverflow.ellipsis),
               ),
               // Class
-              SizedBox(
-                width: _wClass,
+              Expanded(
+                flex: 2,
                 child: Text(cls,
                     style: const TextStyle(fontSize: 12),
                     textAlign: TextAlign.center),
               ),
               // Year
-              SizedBox(
-                width: _wYear,
+              Expanded(
+                flex: 3,
                 child: Text(year,
                     style: const TextStyle(fontSize: 12),
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis),
               ),
               // Fee Term
-              SizedBox(
-                width: _wTerm,
+              Expanded(
+                flex: 3,
                 child: Text(term,
                     style: const TextStyle(fontSize: 12),
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis),
               ),
               // Fee Type
-              SizedBox(
-                width: _wType,
+              Expanded(
+                flex: 4,
                 child: Text(type,
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis),
               ),
               // Category
-              SizedBox(
-                width: _wCategory,
+              Expanded(
+                flex: 2,
                 child: Text(category,
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis),
               ),
               // Fee Amount
-              SizedBox(
-                width: _wFeeAmt,
+              Expanded(
+                flex: 3,
                 child: Text('₹${_fmt(feeAmt)}',
                     style: const TextStyle(fontSize: 12),
                     textAlign: TextAlign.right),
               ),
               // Concession
-              SizedBox(
-                width: _wConcession,
+              Expanded(
+                flex: 3,
                 child: Text('₹${_fmt(concession)}',
                     style: const TextStyle(fontSize: 12),
                     textAlign: TextAlign.right),
               ),
               // Balance Due
-              SizedBox(
-                width: _wBalance,
+              Expanded(
+                flex: 3,
                 child: Text('₹${_fmt(balance)}',
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600),
                     textAlign: TextAlign.right),
               ),
-              const SizedBox(width: _colGap),
+              const SizedBox(width: 32),
               // Created By
-              SizedBox(
-                width: _wCreatedBy,
+              Expanded(
+                flex: 3,
                 child: Text(createdBy,
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis),
               ),
               // Status
-              SizedBox(
-                width: _wStatus,
+              Expanded(
+                flex: 3,
                 child: _statusBadge(status),
               ),
             ],

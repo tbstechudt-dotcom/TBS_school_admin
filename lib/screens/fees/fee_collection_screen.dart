@@ -3444,6 +3444,7 @@ class _DateWiseTabState extends State<_DateWiseTab> with AutomaticKeepAliveClien
   List<String> _allFeeTypes = [];
   List<String> _feeTypes = [];
   Map<int, String> _payNumberMap = {};
+  double _overallPending = 0;
 
   String _searchQuery = '';
   String? _filterFeeType;
@@ -3516,9 +3517,11 @@ class _DateWiseTabState extends State<_DateWiseTab> with AutomaticKeepAliveClien
       final results = await Future.wait([
         SupabaseService.getPaidFeeDemands(insId),
         SupabaseService.getFeeTypes(insId),
+        SupabaseService.getFeeSummary(insId),
       ]);
       final demands = results[0] as List<Map<String, dynamic>>;
       final feeTypes = results[1] as List<String>;
+      final feeSummary = results[2] as FeeSummary;
 
       // Fetch paynumber map from payment table
       final payIds = demands
@@ -3534,6 +3537,7 @@ class _DateWiseTabState extends State<_DateWiseTab> with AutomaticKeepAliveClien
           _allDemands = demands;
           _allFeeTypes = feeTypes;
           _payNumberMap = payNumberMap;
+          _overallPending = feeSummary.totalPending;
           _isLoading = false;
         });
         _applyFilter();
@@ -3668,7 +3672,6 @@ class _DateWiseTabState extends State<_DateWiseTab> with AutomaticKeepAliveClien
 
   double get _totalDemand => _dateGroups.fold(0.0, (s, g) => s + g.totalDemand);
   double get _totalPaid => _dateGroups.fold(0.0, (s, g) => s + g.totalPaid);
-  double get _totalConcession => _dateGroups.fold(0.0, (s, g) => s + g.demands.fold(0.0, (s2, d) => s2 + ((d['conamount'] as num?)?.toDouble() ?? 0)));
 
   /// Build student rows for a date group, pivoted by fee type
   List<Map<String, dynamic>> _buildStudentRows(List<Map<String, dynamic>> demands) {
@@ -3849,13 +3852,13 @@ class _DateWiseTabState extends State<_DateWiseTab> with AutomaticKeepAliveClien
             // Summary cards
             Row(
               children: [
+                _buildSummaryCard(Icons.people_outline, Colors.blue, '$totalStudentCount', 'Total Students'),
+                const SizedBox(width: 16),
                 _buildSummaryCard(Icons.account_balance_wallet, AppColors.accent, _formatCurrency(_totalDemand), 'Total Demand'),
                 const SizedBox(width: 16),
                 _buildSummaryCard(Icons.check_circle_outline, AppColors.success, _formatCurrency(_totalPaid), 'Total Collected'),
                 const SizedBox(width: 16),
-                _buildSummaryCard(Icons.card_giftcard_outlined, AppColors.warning, _formatCurrency(_totalConcession), 'Total Concession'),
-                const SizedBox(width: 16),
-                _buildSummaryCard(Icons.people_outline, Colors.blue, '$totalStudentCount', 'Total Students'),
+                _buildSummaryCard(Icons.pending_outlined, AppColors.warning, _formatCurrency(_overallPending), 'Total Pending'),
               ],
             ),
             const SizedBox(height: 16),
