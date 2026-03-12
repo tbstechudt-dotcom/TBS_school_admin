@@ -228,7 +228,7 @@ class _StaffDesignationTabState extends State<_StaffDesignationTab> with Automat
           SizedBox(
             width: 360,
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -280,7 +280,7 @@ class _StaffDesignationTabState extends State<_StaffDesignationTab> with Automat
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.accent,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
@@ -320,7 +320,9 @@ class _StaffDesignationTabState extends State<_StaffDesignationTab> with Automat
                     ),
                     child: Row(
                       children: [
-                        const Text('Designations', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        Icon(Icons.badge_rounded, size: 18, color: AppColors.accent),
+                        const SizedBox(width: 8),
+                        const Text('Designations', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         const Spacer(),
                         Text('${_designations.length} records', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                         const SizedBox(width: 12),
@@ -330,13 +332,13 @@ class _StaffDesignationTabState extends State<_StaffDesignationTab> with Automat
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    color: Colors.grey.shade50,
+                    color: const Color(0xFF2D3748),
                     child: const Row(
                       children: [
-                        SizedBox(width: 40, child: Text('#', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        Expanded(flex: 3, child: Text('Designation Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        Expanded(flex: 3, child: Text('Reports To', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        SizedBox(width: 80, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                        SizedBox(width: 40, child: Text('S NO.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        Expanded(flex: 3, child: Text('DESIGNATION NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        Expanded(flex: 3, child: Text('REPORTS TO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        SizedBox(width: 80, child: Text('ACTIONS', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
                       ],
                     ),
                   ),
@@ -350,7 +352,7 @@ class _StaffDesignationTabState extends State<_StaffDesignationTab> with Automat
                       final des = entry.value;
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.5)))),
+                        color: idx.isEven ? Colors.white : AppColors.surface,
                         child: Row(
                           children: [
                             SizedBox(width: 40, child: Text('${idx + 1}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
@@ -530,7 +532,7 @@ class _CustomRolesTabState extends State<_CustomRolesTab> with AutomaticKeepAliv
           SizedBox(
             width: 360,
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -569,7 +571,7 @@ class _CustomRolesTabState extends State<_CustomRolesTab> with AutomaticKeepAliv
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.accent,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
@@ -609,7 +611,9 @@ class _CustomRolesTabState extends State<_CustomRolesTab> with AutomaticKeepAliv
                     ),
                     child: Row(
                       children: [
-                        const Text('Custom Roles', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        Icon(Icons.admin_panel_settings_rounded, size: 18, color: AppColors.accent),
+                        const SizedBox(width: 8),
+                        const Text('Custom Roles', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         const Spacer(),
                         Text('${_roles.length} records', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                         const SizedBox(width: 12),
@@ -619,13 +623,13 @@ class _CustomRolesTabState extends State<_CustomRolesTab> with AutomaticKeepAliv
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    color: Colors.grey.shade50,
+                    color: const Color(0xFF2D3748),
                     child: const Row(
                       children: [
-                        SizedBox(width: 40, child: Text('#', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        Expanded(flex: 3, child: Text('Role Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        Expanded(flex: 2, child: Text('Ins Code', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        SizedBox(width: 80, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                        SizedBox(width: 40, child: Text('S NO.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        Expanded(flex: 3, child: Text('ROLE NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        Expanded(flex: 2, child: Text('INS CODE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        SizedBox(width: 80, child: Text('ACTIONS', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
                       ],
                     ),
                   ),
@@ -639,7 +643,7 @@ class _CustomRolesTabState extends State<_CustomRolesTab> with AutomaticKeepAliv
                       final role = entry.value;
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.5)))),
+                        color: idx.isEven ? Colors.white : AppColors.surface,
                         child: Row(
                           children: [
                             SizedBox(width: 40, child: Text('${idx + 1}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),

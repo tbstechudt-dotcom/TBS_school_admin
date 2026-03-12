@@ -133,7 +133,7 @@ class _StaffDesignationScreenState extends State<StaffDesignationScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,7 +141,7 @@ class _StaffDesignationScreenState extends State<StaffDesignationScreen> {
           SizedBox(
             width: 360,
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -193,7 +193,7 @@ class _StaffDesignationScreenState extends State<StaffDesignationScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.accent,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
@@ -226,7 +226,9 @@ class _StaffDesignationScreenState extends State<StaffDesignationScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Text('Designations', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        Icon(Icons.badge_rounded, size: 18, color: AppColors.accent),
+                        const SizedBox(width: 8),
+                        const Text('Designations', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         const Spacer(),
                         Text('${_designations.length} records', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                         const SizedBox(width: 12),
@@ -240,13 +242,13 @@ class _StaffDesignationScreenState extends State<StaffDesignationScreen> {
                   // Table header
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    color: Colors.grey.shade50,
+                    color: const Color(0xFF2D3748),
                     child: const Row(
                       children: [
-                        SizedBox(width: 40, child: Text('#', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        Expanded(flex: 3, child: Text('Designation Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        Expanded(flex: 3, child: Text('Reports To', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                        SizedBox(width: 80, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                        SizedBox(width: 40, child: Text('S NO.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        Expanded(flex: 3, child: Text('DESIGNATION NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        Expanded(flex: 3, child: Text('REPORTS TO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                        SizedBox(width: 80, child: Text('ACTIONS', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
                       ],
                     ),
                   ),
@@ -268,6 +270,7 @@ class _StaffDesignationScreenState extends State<StaffDesignationScreen> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         decoration: BoxDecoration(
+                          color: idx.isEven ? Colors.white : AppColors.surface,
                           border: Border(bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.5))),
                         ),
                         child: Row(
