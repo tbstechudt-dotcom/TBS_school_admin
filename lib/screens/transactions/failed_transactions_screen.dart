@@ -105,6 +105,10 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
   }
 
   String _getStudentName(PaymentModel t) {
+    // Use stuname from RPC if available, fallback to student map lookup
+    if (t.stuname != null && t.stuname!.isNotEmpty) {
+      return t.stuname!;
+    }
     if (t.stuId != null && _stuIdToName.containsKey(t.stuId)) {
       return _stuIdToName[t.stuId]!;
     }

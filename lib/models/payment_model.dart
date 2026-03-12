@@ -17,13 +17,16 @@ class PaymentModel {
   final DateTime createdat;
   final int activestatus;
 
+  /// Student name returned by the RPC function (not stored in model permanently)
+  final String? stuname;
+
   PaymentModel({
     required this.payId,
     this.paynumber,
     required this.insId,
     this.inscode,
     this.stuId,
-    required this.yrId,
+    this.yrId = 0,
     this.yrlabel,
     this.transtotalamount = 0,
     this.transcurrency = 'INR',
@@ -34,40 +37,43 @@ class PaymentModel {
     this.createdby,
     required this.createdat,
     this.activestatus = 1,
+    this.stuname,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
+    // Handle both direct table fields and RPC function field names
+    final payIdRaw = json['pay_id'];
+    final insIdRaw = json['ins_id'];
+    final stuIdRaw = json['stu_id'];
+    final yrIdRaw = json['yr_id'];
+
     return PaymentModel(
-      payId: json['pay_id'] is int
-          ? json['pay_id']
-          : int.parse(json['pay_id'].toString()),
-      paynumber: json['paynumber'],
-      insId: json['ins_id'] is int
-          ? json['ins_id']
-          : int.parse(json['ins_id'].toString()),
+      payId: payIdRaw is int ? payIdRaw : int.parse(payIdRaw.toString()),
+      paynumber: json['paynumber'] ?? json['payno'],
+      insId: insIdRaw is int ? insIdRaw : int.parse(insIdRaw.toString()),
       inscode: json['inscode'],
-      stuId: json['stu_id'] != null
-          ? (json['stu_id'] is int
-              ? json['stu_id']
-              : int.parse(json['stu_id'].toString()))
+      stuId: stuIdRaw != null
+          ? (stuIdRaw is int ? stuIdRaw : int.parse(stuIdRaw.toString()))
           : null,
-      yrId: json['yr_id'] is int
-          ? json['yr_id']
-          : int.parse(json['yr_id'].toString()),
+      yrId: yrIdRaw != null
+          ? (yrIdRaw is int ? yrIdRaw : int.parse(yrIdRaw.toString()))
+          : 0,
       yrlabel: json['yrlabel'],
       transtotalamount:
-          (json['transtotalamount'] as num?)?.toDouble() ?? 0,
-      transcurrency: json['transcurrency'] ?? 'INR',
+          (json['transtotalamount'] as num?)?.toDouble() ??
+          (json['payamount'] as num?)?.toDouble() ?? 0,
+      transcurrency: json['transcurrency'] ?? json['paycurrency'] ?? 'INR',
       paydate:
-          json['paydate'] != null ? DateTime.parse(json['paydate']) : null,
+          json['paydate'] != null ? DateTime.parse(json['paydate'].toString()) : null,
       paystatus: json['paystatus'],
       paymethod: json['paymethod'],
       payreference: json['payreference'],
       createdby: json['createdby'],
       createdat: json['createdat'] != null
-          ? DateTime.parse(json['createdat'])
+          ? DateTime.parse(json['createdat'].toString())
           : DateTime.now(),
       activestatus: json['activestatus'] ?? 1,
+      stuname: json['stuname'],
     );
   }
 
