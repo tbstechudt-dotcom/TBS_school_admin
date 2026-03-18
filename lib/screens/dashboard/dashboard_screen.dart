@@ -418,62 +418,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _navItems[_selectedNavIndex].label,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                Text(
-                  'Academic Year 2025-26',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 12,
-                      ),
-                ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _navItems[_selectedNavIndex].label,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              Text(
+                'Academic Year 2025-26',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 12,
+                    ),
+              ),
+            ],
           ),
 
-          // Search bar (desktop only)
+          // School logo, name and address (center)
           if (isDesktop)
-            CompositedTransformTarget(
-              link: _searchLayerLink,
-              child: Container(
-                width: 350,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name or admission no...',
-                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textLight,
-                          fontSize: 13,
-                        ),
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        size: 20, color: AppColors.textLight),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearchChanged('');
-                            },
+            Expanded(
+              child: Center(
+                child: (auth.insLogo != null || auth.insName != null)
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (auth.insLogo != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              auth.insLogo!,
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.school_rounded, size: 36, color: AppColors.accent),
+                            ),
                           )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
-                  ),
-                ),
+                        else
+                          const Icon(Icons.school_rounded, size: 36, color: AppColors.accent),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (auth.insName != null)
+                              Text(
+                                auth.insName!,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                              ),
+                            if (auth.insAddress != null)
+                              Text(
+                                auth.insAddress!,
+                                style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
               ),
             ),
 
