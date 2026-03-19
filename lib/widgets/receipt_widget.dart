@@ -425,12 +425,12 @@ class ReceiptWidget extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text('Sub Total', textAlign: TextAlign.right,
-                              style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+                              style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
                           ),
                           SizedBox(
                             width: 119,
                             child: Text('\u20B9${_formatAmount(data.total)}', textAlign: TextAlign.right,
-                              style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+                              style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
                           ),
                         ],
                       ),

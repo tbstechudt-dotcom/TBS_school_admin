@@ -725,7 +725,7 @@ class _StudentLedgerScreenState extends State<StudentLedgerScreen> {
                     const SizedBox(width: 90),
                     const Expanded(
                       child: Text('TOTAL',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                               color: Colors.white, letterSpacing: 0.5)),
                     ),
                     const SizedBox(width: 110),
@@ -733,14 +733,14 @@ class _StudentLedgerScreenState extends State<StudentLedgerScreen> {
                       width: 100,
                       child: Text('₹${totalDebit.toStringAsFixed(0)}',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                               color: Colors.white)),
                     ),
                     SizedBox(
                       width: 100,
                       child: Text('₹${totalCredit.toStringAsFixed(0)}',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                               color: Colors.white)),
                     ),
                   ],
@@ -757,7 +757,7 @@ class _StudentLedgerScreenState extends State<StudentLedgerScreen> {
                     const SizedBox(width: 90),
                     const Expanded(
                       child: Text('CLOSING BALANCE',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                               color: Colors.white, letterSpacing: 0.5)),
                     ),
                     const SizedBox(width: 110),
@@ -780,7 +780,7 @@ class _StudentLedgerScreenState extends State<StudentLedgerScreen> {
                                 ? '₹${closingBalance.abs().toStringAsFixed(0)}  Advance'
                                 : '₹${closingBalance.toStringAsFixed(0)}  Due',
                             style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white),
                           ),

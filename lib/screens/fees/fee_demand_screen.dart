@@ -1116,6 +1116,24 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
               },
             ),
           ),
+          // Total footer row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF6C8EEF),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 100, child: Text('TOTAL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white))),
+                Expanded(child: Text('${summaries.fold<int>(0, (sum, s) => sum + ((s['student_count'] as num?)?.toInt() ?? 0))}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center)),
+                Expanded(child: Text('₹${_formatAmount(summaries.fold<double>(0, (sum, s) => sum + ((s['total_demand'] as num?)?.toDouble() ?? 0)))}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                Expanded(child: Text('₹${_formatAmount(summaries.fold<double>(0, (sum, s) => sum + ((s['total_paid'] as num?)?.toDouble() ?? 0)))}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                Expanded(child: Text('₹${_formatAmount(summaries.fold<double>(0, (sum, s) => sum + ((s['total_pending'] as num?)?.toDouble() ?? 0)))}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right)),
+                const SizedBox(width: 32),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1383,10 +1401,10 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                   cells: [
                     const DataCell(Text('')),
                     const DataCell(Text('')),
-                    const DataCell(Text('Total', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white))),
-                    DataCell(Text('₹${_formatAmount(totalAmt)}', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white))),
-                    DataCell(Text('₹${_formatAmount(totalPaid)}', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white))),
-                    DataCell(Text('₹${_formatAmount(totalBal)}', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white))),
+                    const DataCell(Text('Total', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white))),
+                    DataCell(Text('₹${_formatAmount(totalAmt)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white))),
+                    DataCell(Text('₹${_formatAmount(totalPaid)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white))),
+                    DataCell(Text('₹${_formatAmount(totalBal)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white))),
                     const DataCell(Text('')),
                     const DataCell(Text('')),
                   ],
