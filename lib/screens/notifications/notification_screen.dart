@@ -36,6 +36,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           .select()
           .eq('ins_id', insId)
           .eq('activestatus', 1)
+          .isFilter('stu_id', null)
           .order('createdat', ascending: false);
       final allNotifications = List<Map<String, dynamic>>.from(data);
       // Deduplicate: group by title+body+type, show unique notifications only
