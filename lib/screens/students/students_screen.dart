@@ -1090,7 +1090,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
               children: [
                 // LEFT — Student List
                 SizedBox(
-                  width: 280,
+                  width: 260,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
