@@ -110,7 +110,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     'stuclass': 'Class *',
     'stumobile': 'Mobile *',
     'stuemail': 'Email',
-    'concession': 'Concession',
+    'concession': 'Concession *',
     'stuaddress': 'Address',
     'stucity': 'City',
     'stustate': 'State',
@@ -126,13 +126,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
     'guardianname': 'Guardian Name',
     'guardianmobile': 'Guardian Mobile',
     'guardianoccupation': 'Guardian Occ.',
-    'payincharge': 'Pay In Charge',
-    'payinchargemob': 'Pay Mobile',
+    'payincharge': 'Pay In Charge *',
+    'payinchargemob': 'Pay Mobile *',
   };
 
   final ScrollController _importScrollController = ScrollController();
 
-  static const _importRequiredFields = {'stuadmno', 'stuname', 'stugender', 'studob', 'stumobile', 'stuclass'};
+  static const _importRequiredFields = {'stuadmno', 'stuname', 'stugender', 'studob', 'stumobile', 'stuclass', 'concession', 'payincharge', 'payinchargemob'};
 
   static const TextStyle _inputStyle = TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Color(0xFF555555));
 
@@ -152,7 +152,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     Color(0xFFF97316), // IV - Orange
     Color(0xFFF59E0B), // V - Amber
     Color(0xFF22C55E), // VI - Green
-    Color(0xFF14B8A6), // VII - Teal
+    Color(0xFF6C8EEF), // VII - Teal
     Color(0xFF06B6D4), // VIII - Cyan
     Color(0xFF6C8EEF), // IX - Blue
     Color(0xFF2563EB), // X - Blue dark

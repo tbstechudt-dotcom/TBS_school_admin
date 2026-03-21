@@ -88,7 +88,7 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
     'duedate': 'Due Date',
   };
 
-  static const _requiredFields = {'stuadmno', 'demfeetype', 'feeamount'};
+  static const _requiredFields = {'stuadmno', 'stuclass', 'demfeetype', 'yr_id', 'demfeeterm', 'con_id', 'feeamount', 'conamount', 'duedate'};
 
   @override
   void initState() {
@@ -1515,21 +1515,21 @@ class _FeeDemandScreenState extends State<FeeDemandScreen> {
                         _gridHeaderDivider(),
                         _gridHeaderCell('Adm No *', flex: 2),
                         _gridHeaderDivider(),
-                        _gridHeaderCell('Class', flex: 1),
+                        _gridHeaderCell('Class *', flex: 1),
                         _gridHeaderDivider(),
                         _gridHeaderCell('Fee Type *', flex: 2),
                         _gridHeaderDivider(),
-                        _gridHeaderCell('Year', flex: 1),
+                        _gridHeaderCell('Year *', flex: 1),
                         _gridHeaderDivider(),
-                        _gridHeaderCell('Term', flex: 1),
+                        _gridHeaderCell('Term *', flex: 1),
                         _gridHeaderDivider(),
-                        _gridHeaderCell('Concession', flex: 2),
+                        _gridHeaderCell('Concession *', flex: 2),
                         _gridHeaderDivider(),
                         _gridHeaderCell('Fee Amt *', flex: 2, center: true),
                         _gridHeaderDivider(),
-                        _gridHeaderCell('Con. Amt', flex: 2, center: true),
+                        _gridHeaderCell('Con. Amt *', flex: 2, center: true),
                         _gridHeaderDivider(),
-                        _gridHeaderCell('Due Date', flex: 2, center: true),
+                        _gridHeaderCell('Due Date *', flex: 2, center: true),
                       ],
                     ),
                   ),
