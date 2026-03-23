@@ -339,7 +339,7 @@ class _FeeCollectionTabState extends State<_FeeCollectionTab> with AutomaticKeep
   double _pendingFees = 0;
   double _todayCollection = 0;
 
-  double get _totalCollection => _payments.fold(0.0, (sum, p) => sum + ((p['transtotalamount'] as num?)?.toDouble() ?? 0));
+  double get _totalCollection => _demands.fold(0.0, (sum, d) => sum + ((d['paidamount'] as num?)?.toDouble() ?? 0));
 
   Widget _buildDateChip(String label, DateTime date, VoidCallback onTap) {
     return InkWell(
@@ -961,17 +961,11 @@ class _FeeCollectionTabState extends State<_FeeCollectionTab> with AutomaticKeep
     if (_isLoadingDemands) {
       return const Center(child: CircularProgressIndicator());
     }
-    // Rows with pending balance (for student drilldown)
-    final pendingDemands = _demands.where((d) {
-      final balance = (d['balancedue'] as num?)?.toDouble() ?? 0;
-      return balance > 0;
-    }).toList();
-
-    // All rows with non-zero net demand (for group table — shows all fee groups including fully paid)
+    // All rows with non-zero fee amount or any payment activity
     final activeDemands = _demands.where((d) {
       final fee = (d['feeamount'] as num?)?.toDouble() ?? 0;
-      final con = (d['conamount'] as num?)?.toDouble() ?? 0;
-      return fee - con > 0;
+      final paid = (d['paidamount'] as num?)?.toDouble() ?? 0;
+      return fee > 0 || paid > 0;
     }).toList();
 
     // Get unique fee types and classes for dropdowns
@@ -1011,21 +1005,17 @@ class _FeeCollectionTabState extends State<_FeeCollectionTab> with AutomaticKeep
       return _buildPendingStudentList(_selectedPendingFeeGroup!, drilldownDemands, feeTypes, classes);
     }
 
-    // Compute totals — use all demands for demand (not just pending-filtered)
-    // so fully-paid students don't vanish from the summary
-    // Balance uses server-side _pendingFees to avoid row-limit discrepancies
-    double totalDemand = 0;
-    for (final d in _demands) {
-      totalDemand += (d['feeamount'] as num?)?.toDouble() ?? 0;
-    }
-    final double totalBalance = _pendingFees;
-    // Total paid = total collection from payment table (already loaded)
-    final double totalPaid = _payments.fold(0.0, (s, p) => s + ((p['transtotalamount'] as num?)?.toDouble() ?? 0));
-    // Student count = pending students only
+    // Compute totals from filtered demands (consistent with group rows)
+    double totalDemand = 0, totalPaid = 0, totalBalance = 0;
     final allStuIds = <String>{};
-    for (final d in pendingDemands) {
-      final stuId = d['stu_id']?.toString();
-      if (stuId != null) allStuIds.add(stuId);
+    for (final d in filtered) {
+      totalDemand += (d['feeamount'] as num?)?.toDouble() ?? 0;
+      totalPaid += (d['paidamount'] as num?)?.toDouble() ?? 0;
+      totalBalance += (d['balancedue'] as num?)?.toDouble() ?? 0;
+      if (((d['balancedue'] as num?)?.toDouble() ?? 0) > 0) {
+        final stuId = d['stu_id']?.toString();
+        if (stuId != null) allStuIds.add(stuId);
+      }
     }
     final int totalStudents = allStuIds.length;
 
