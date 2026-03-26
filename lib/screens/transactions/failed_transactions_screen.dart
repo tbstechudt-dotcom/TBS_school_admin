@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -25,20 +26,44 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
   late TabController _tabController;
   bool _isLoading = false;
   List<PaymentModel> _paidTransactions = [];
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
   List<PaymentModel> _failedTransactions = [];
   Map<int, String> _stuIdToName = {};
   Map<int, StudentModel> _stuIdToStudent = {};
+  DateTime? _filterFromDate;
+  DateTime? _filterToDate;
   String? _insName;
   String? _insLogoUrl;
   String? _insAddress;
   String? _insMobile;
   String? _insEmail;
 
-  // Pagination
-  int _allPage = 0;
-  int _paidPage = 0;
-  int _failedPage = 0;
-  static const int _pageSize = 10;
+
+  List<PaymentModel> _filterBySearch(List<PaymentModel> list) {
+    var filtered = list;
+    // Date filter
+    if (_filterFromDate != null || _filterToDate != null) {
+      filtered = filtered.where((t) {
+        final date = t.paydate ?? t.createdat;
+        final dateOnly = DateTime(date.year, date.month, date.day);
+        if (_filterFromDate != null && dateOnly.isBefore(_filterFromDate!)) return false;
+        if (_filterToDate != null && dateOnly.isAfter(_filterToDate!)) return false;
+        return true;
+      }).toList();
+    }
+    // Search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((t) {
+        final name = _getStudentName(t).toLowerCase();
+        final payNo = (t.paynumber ?? '${t.payId}').toLowerCase();
+        final ref = (t.payreference ?? '').toLowerCase();
+        final method = (t.paymethod ?? '').toLowerCase();
+        return name.contains(_searchQuery) || payNo.contains(_searchQuery) || ref.contains(_searchQuery) || method.contains(_searchQuery);
+      }).toList();
+    }
+    return filtered;
+  }
 
   List<PaymentModel> get _allTransactions {
     final all = [..._paidTransactions, ..._failedTransactions];
@@ -47,7 +72,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
       final dateB = b.paydate ?? b.createdat;
       return dateB.compareTo(dateA);
     });
-    return all;
+    return _filterBySearch(all);
   }
 
   @override
@@ -122,12 +147,13 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
   }
 
   Widget _buildDownloadButton(PaymentModel t) {
-    return IconButton(
-      icon: const Icon(Icons.download_rounded, size: 20, color: AppColors.accent),
-      tooltip: 'Download Receipt',
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
+    return TextButton.icon(
       onPressed: () => _showReceiptOptions(t),
+      icon: Icon(Icons.download_rounded, size: 18.sp, color: AppColors.accent),
+      label: Text('Download', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: AppColors.accent)),
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      ),
     );
   }
 
@@ -208,7 +234,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
         child: SizedBox(
           width: 620,
           height: 920,
@@ -216,7 +242,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
             children: [
               // Action bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -228,27 +254,27 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                       icon: const Icon(Icons.download_rounded, size: 18),
                       label: const Text('Download'),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8.w),
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
                         _printReceipt(t);
                       },
-                      icon: const Icon(Icons.print_rounded, size: 18),
+                      icon: Icon(Icons.print_rounded, size: 18.sp),
                       label: const Text('Print'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 20.h),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                         elevation: 0,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        textStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8.w),
                     IconButton(
                       onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close, size: 20),
+                      icon: Icon(Icons.close, size: 20.sp),
                     ),
                   ],
                 ),
@@ -257,7 +283,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
               // Receipt preview
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12.w),
                   child: Center(
                     child: Container(
                       decoration: BoxDecoration(
@@ -393,7 +419,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
               pw.Container(height: 1, color: dividerColor),
               pw.SizedBox(height: 12),
               // To section
-              pw.Text('To:', style: pw.TextStyle(font: fontSemiBold, fontSize: 12, color: textDark)),
+              pw.Text('To:', style: pw.TextStyle(font: fontSemiBold, fontSize: 13, color: textDark)),
               pw.SizedBox(height: 8),
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -532,7 +558,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                             padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 5),
                             decoration: pw.BoxDecoration(
                               color: PdfColor.fromInt(data.status == 'paid' ? 0x66c2eecd : 0x66FFD6D6),
-                              borderRadius: pw.BorderRadius.circular(10),
+                              borderRadius: pw.BorderRadius.circular(10.r),
                               border: pw.Border.all(
                                 color: data.status == 'paid' ? paidGreen : const PdfColor.fromInt(0xFFFF3B30),
                                 width: 2.5,
@@ -640,36 +666,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Header + Tabs row
-        Row(
-          children: [
-            Icon(Icons.receipt_long_rounded,
-                color: AppColors.primary, size: 22),
-            const SizedBox(width: 10),
-            Text(
-              'Transactions',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: _fetchData,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Refresh'),
-              style: OutlinedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Tab buttons with colored active states
+        // 1. Tab buttons (on top)
         ListenableBuilder(
           listenable: _tabController,
           builder: (context, _) {
@@ -678,87 +675,279 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
             final tabBgColors = [AppColors.accent.withValues(alpha: 0.1), Colors.green.shade50, Colors.red.shade50];
             final tabIcons = [Icons.list_alt_rounded, Icons.check_circle_rounded, Icons.error_rounded];
             final tabLabels = ['All', 'Paid', 'Failed'];
+            final filteredPaid = _applyDateFilter(_paidTransactions);
+            final filteredFailed = _applyDateFilter(_failedTransactions);
             final tabCounts = [
-              _paidTransactions.length + _failedTransactions.length,
-              _paidTransactions.length,
-              _failedTransactions.length,
+              filteredPaid.length + filteredFailed.length,
+              filteredPaid.length,
+              filteredFailed.length,
             ];
 
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(color: AppColors.border),
               ),
               padding: const EdgeInsets.all(4),
               child: Row(
-              children: List.generate(3, (i) {
-                final isActive = selected == i;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => _tabController.animateTo(i),
-                    child: Container(
-                      margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isActive ? tabColors[i] : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(tabIcons[i], size: 16, color: isActive ? Colors.white : tabColors[i]),
-                          const SizedBox(width: 8),
-                          Text(tabLabels[i], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isActive ? Colors.white : AppColors.textPrimary)),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isActive ? Colors.white.withValues(alpha: 0.25) : tabBgColors[i],
-                              borderRadius: BorderRadius.circular(10),
+                children: List.generate(3, (i) {
+                  final isActive = selected == i;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => _tabController.animateTo(i),
+                      child: Container(
+                        margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isActive ? tabColors[i] : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(tabIcons[i], size: 16, color: isActive ? Colors.white : tabColors[i]),
+                            SizedBox(width: 8.w),
+                            Text(tabLabels[i], style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: isActive ? Colors.white : AppColors.textPrimary)),
+                            SizedBox(width: 8.w),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isActive ? Colors.white.withValues(alpha: 0.25) : tabBgColors[i],
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Text(
+                                '${tabCounts[i]}',
+                                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700, color: isActive ? Colors.white : tabColors[i]),
+                              ),
                             ),
-                            child: Text(
-                              '${tabCounts[i]}',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isActive ? Colors.white : tabColors[i]),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }),
-            ),
+                  );
+                }),
+              ),
             );
           },
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 10.h),
 
-        // Summary cards
+        // 2. Summary cards
         _buildSummaryCards(),
-        const SizedBox(height: 16),
+        SizedBox(height: 10.h),
 
-        // Tab content
+        // 3. Combined header + table card
         Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildAllTransactionTable(),
-                    _buildTransactionTable(_paidTransactions, isPaid: true),
-                    _buildTransactionTable(_failedTransactions, isPaid: false),
-                  ],
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                // Date filter row
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppColors.border)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.filter_alt_rounded, size: 16, color: AppColors.textSecondary),
+                      SizedBox(width: 8.w),
+                      Text('Date Range:', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                      SizedBox(width: 8.w),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _filterFromDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) setState(() => _filterFromDate = picked);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today, size: 14, color: AppColors.textSecondary),
+                              SizedBox(width: 6.w),
+                              Text(
+                                _filterFromDate != null
+                                    ? '${_filterFromDate!.day.toString().padLeft(2, '0')}/${_filterFromDate!.month.toString().padLeft(2, '0')}/${_filterFromDate!.year}'
+                                    : 'From',
+                                style: TextStyle(fontSize: 13.sp),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Text('—', style: TextStyle(color: AppColors.textSecondary))),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _filterToDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) setState(() => _filterToDate = picked);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today, size: 14, color: AppColors.textSecondary),
+                              SizedBox(width: 6.w),
+                              Text(
+                                _filterToDate != null
+                                    ? '${_filterToDate!.day.toString().padLeft(2, '0')}/${_filterToDate!.month.toString().padLeft(2, '0')}/${_filterToDate!.year}'
+                                    : 'To',
+                                style: TextStyle(fontSize: 13.sp),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      ...[
+                        ('Today', () { final now = DateTime.now(); setState(() { _filterFromDate = DateTime(now.year, now.month, now.day); _filterToDate = DateTime(now.year, now.month, now.day); }); }),
+                        ('7 Days', () { final now = DateTime.now(); setState(() { _filterFromDate = now.subtract(const Duration(days: 7)); _filterToDate = DateTime(now.year, now.month, now.day); }); }),
+                        ('30 Days', () { final now = DateTime.now(); setState(() { _filterFromDate = now.subtract(const Duration(days: 30)); _filterToDate = DateTime(now.year, now.month, now.day); }); }),
+                        ('All', () { setState(() { _filterFromDate = null; _filterToDate = null; }); }),
+                      ].map((e) => Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: InkWell(
+                          onTap: e.$2,
+                          borderRadius: BorderRadius.circular(6.r),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(6.r),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Text(e.$1, style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500)),
+                          ),
+                        ),
+                      )),
+                    ],
+                  ),
                 ),
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppColors.border)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.receipt_long_rounded,
+                          color: AppColors.primary, size: 20),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Transactions',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 260,
+                        height: 34,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                          decoration: InputDecoration(
+                            hintText: 'Search by name, pay no, reference...',
+                            hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+                            prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.close_rounded, size: 16),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                    splashRadius: 14,
+                                  )
+                                : null,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: const BorderSide(color: AppColors.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: const BorderSide(color: AppColors.border)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: const BorderSide(color: AppColors.accent, width: 1.5)),
+                            filled: true,
+                            fillColor: AppColors.surface,
+                            isDense: true,
+                          ),
+                          style: TextStyle(fontSize: 13.sp),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      TextButton.icon(
+                        onPressed: _fetchData,
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Refresh'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          textStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Table
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildAllTransactionTable(),
+                            _buildTransactionTable(_filterBySearch(_paidTransactions), isPaid: true),
+                            _buildTransactionTable(_filterBySearch(_failedTransactions), isPaid: false),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
+  List<PaymentModel> _applyDateFilter(List<PaymentModel> list) {
+    if (_filterFromDate == null && _filterToDate == null) return list;
+    return list.where((t) {
+      final date = t.paydate ?? t.createdat;
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      if (_filterFromDate != null && dateOnly.isBefore(_filterFromDate!)) return false;
+      if (_filterToDate != null && dateOnly.isAfter(_filterToDate!)) return false;
+      return true;
+    }).toList();
+  }
+
   Widget _buildSummaryCards() {
-    final paidTotal = _paidTransactions.fold<double>(
+    final filteredPaid = _applyDateFilter(_paidTransactions);
+    final filteredFailed = _applyDateFilter(_failedTransactions);
+    final paidTotal = filteredPaid.fold<double>(
         0, (sum, t) => sum + t.transtotalamount);
-    final failedTotal = _failedTransactions.fold<double>(
+    final failedTotal = filteredFailed.fold<double>(
         0, (sum, t) => sum + t.transtotalamount);
 
     return Row(
@@ -767,26 +956,26 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
           child: _buildSummaryCard(
             'Total Paid',
             '\u20B9 ${paidTotal.toStringAsFixed(2)}',
-            '${_paidTransactions.length} transactions',
+            '${filteredPaid.length} transactions',
             Colors.green,
             Icons.check_circle_outline_rounded,
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16.w),
         Expanded(
           child: _buildSummaryCard(
             'Total Failed',
             '\u20B9 ${failedTotal.toStringAsFixed(2)}',
-            '${_failedTransactions.length} transactions',
+            '${filteredFailed.length} transactions',
             Colors.red,
             Icons.error_outline_rounded,
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16.w),
         Expanded(
           child: _buildSummaryCard(
             'Total Transactions',
-            '${_paidTransactions.length + _failedTransactions.length}',
+            '${filteredPaid.length + filteredFailed.length}',
             'All records',
             AppColors.primary,
             Icons.receipt_long_rounded,
@@ -799,23 +988,23 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
   Widget _buildSummaryCard(
       String title, String value, String subtitle, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -823,55 +1012,32 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13.sp,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w700,
                     color: color,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2.h),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 13.sp,
                     color: AppColors.textSecondary.withValues(alpha: 0.7),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaginationControls(int currentPage, int totalPages, void Function(int) onPageChanged) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFF6C8EEF),
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(icon: const Icon(Icons.first_page_rounded, size: 20), color: Colors.white, onPressed: currentPage > 0 ? () => onPageChanged(0) : null),
-          IconButton(icon: const Icon(Icons.chevron_left_rounded, size: 20), color: Colors.white, onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('${currentPage + 1} / ${totalPages == 0 ? 1 : totalPages}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
-          ),
-          IconButton(icon: const Icon(Icons.chevron_right_rounded, size: 20), color: Colors.white, onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null),
-          IconButton(icon: const Icon(Icons.last_page_rounded, size: 20), color: Colors.white, onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null),
         ],
       ),
     );
@@ -886,7 +1052,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
           children: [
             Icon(Icons.receipt_long_rounded,
                 size: 64, color: AppColors.accent.withValues(alpha: 0.5)),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               'No Transactions',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -899,116 +1065,56 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
       );
     }
 
-    final totalPages = (allTransactions.length / _pageSize).ceil();
-    if (_allPage >= totalPages && totalPages > 0) _allPage = totalPages - 1;
-    final start = _allPage * _pageSize;
-    final end = (start + _pageSize).clamp(0, allTransactions.length);
-    final transactions = allTransactions.sublist(start, end);
+    final transactions = allTransactions;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Column(children: [
-          SingleChildScrollView(
-            child: SizedBox(
-              width: double.infinity,
-              child: DataTable(dividerThickness: 0,
-                headingRowColor: WidgetStateProperty.all(const Color(0xFF6C8EEF)),
-                headingTextStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                  color: Colors.white,
-                ),
-                dataTextStyle: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textPrimary,
-                ),
-                columnSpacing: 20,
-                horizontalMargin: 16,
-                headingRowHeight: 42,
-                columns: const [
-                  DataColumn(label: Text('S NO.')),
-                  DataColumn(label: Text('PAY NO')),
-                  DataColumn(label: Text('STUDENT')),
-                  DataColumn(label: Text('AMOUNT')),
-                  DataColumn(label: Text('CURRENCY')),
-                  DataColumn(label: Text('METHOD')),
-                  DataColumn(label: Text('REFERENCE')),
-                  DataColumn(label: Text('DATE')),
-                  DataColumn(label: Text('STATUS')),
-                  DataColumn(label: Text('DOWNLOAD RECEIPT')),
-                ],
-                rows: List.generate(transactions.length, (i) {
-                  final t = transactions[i];
-                  final stuName = _getStudentName(t);
-                  final isPaid = t.isSuccess;
-                  final statusColor = isPaid ? Colors.green : Colors.red;
-                  final statusText = isPaid ? 'Paid' : 'Failed';
-                  final date = t.paydate ?? t.createdat;
-
-                  return DataRow(
-                    color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF2F6FA)),
-                    cells: [
-                      DataCell(Text('${start + i + 1}')),
-                      DataCell(Text(t.paynumber ?? '${t.payId}')),
-                      DataCell(
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 180),
-                          child: Text(
-                            stuName,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(
-                        t.transtotalamount.toStringAsFixed(2),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      )),
-                      DataCell(Text(t.transcurrency)),
-                      DataCell(Text(t.paymethod ?? '-')),
-                      DataCell(
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 160),
-                          child: Text(
-                            t.payreference ?? '-',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(
-                        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
-                      )),
-                      DataCell(Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      )),
-                      DataCell(t.isSuccess ? _buildDownloadButton(t) : const SizedBox.shrink()),
-                    ],
-                  );
-                }),
-              ),
-            ),
-          ),
-          _buildPaginationControls(_allPage, totalPages, (p) => setState(() => _allPage = p)),
-        ]),
+    return SingleChildScrollView(
+      child: DataTable(
+        dividerThickness: 0,
+        headingRowColor: WidgetStateProperty.all(const Color(0xFF6C8EEF)),
+        headingTextStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.sp, color: Colors.white),
+        dataTextStyle: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary),
+        columnSpacing: 20,
+        horizontalMargin: 16,
+        headingRowHeight: 42,
+        columns: const [
+          DataColumn(label: Text('S NO.')),
+          DataColumn(label: Text('PAY NO')),
+          DataColumn(label: Text('STUDENT')),
+          DataColumn(label: Text('AMOUNT')),
+          DataColumn(label: Text('CURRENCY')),
+          DataColumn(label: Text('METHOD')),
+          DataColumn(label: Text('REFERENCE')),
+          DataColumn(label: Text('DATE')),
+          DataColumn(label: Text('STATUS')),
+          DataColumn(label: Text('DOWNLOAD RECEIPT')),
+        ],
+        rows: List.generate(transactions.length, (i) {
+          final t = transactions[i];
+          final stuName = _getStudentName(t);
+          final isPaid = t.isSuccess;
+          final statusColor = isPaid ? Colors.green : Colors.red;
+          final statusText = isPaid ? 'Paid' : 'Failed';
+          final date = t.paydate ?? t.createdat;
+          return DataRow(
+            color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF2F6FA)),
+            cells: [
+              DataCell(Text('${i + 1}')),
+              DataCell(Text(t.paynumber ?? '${t.payId}')),
+              DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 180), child: Text(stuName, overflow: TextOverflow.ellipsis))),
+              DataCell(Text(t.transtotalamount.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.w600))),
+              DataCell(Text(t.transcurrency)),
+              DataCell(Text(t.paymethod ?? '-')),
+              DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 160), child: Text(t.payreference ?? '-', overflow: TextOverflow.ellipsis))),
+              DataCell(Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}')),
+              DataCell(Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: statusColor.shade50, borderRadius: BorderRadius.circular(8.r)),
+                child: Text(statusText, style: TextStyle(color: statusColor.shade700, fontWeight: FontWeight.w600, fontSize: 13.sp)),
+              )),
+              DataCell(t.isSuccess ? _buildDownloadButton(t) : const SizedBox.shrink()),
+            ],
+          );
+        }),
       ),
     );
   }
@@ -1027,7 +1133,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
               size: 64,
               color: AppColors.accent.withValues(alpha: 0.5),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               isPaid ? 'No Paid Transactions' : 'No Failed Transactions',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -1035,7 +1141,7 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
                     color: AppColors.textSecondary,
                   ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               isPaid
                   ? 'No completed payments found.'
@@ -1049,125 +1155,55 @@ class _FailedTransactionsScreenState extends State<FailedTransactionsScreen>
       );
     }
 
-    final curPage = isPaid ? _paidPage : _failedPage;
-    final totalPages = (allItems.length / _pageSize).ceil();
-    final effectivePage = (curPage >= totalPages && totalPages > 0) ? totalPages - 1 : curPage;
-    if (effectivePage != curPage) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() { if (isPaid) _paidPage = effectivePage; else _failedPage = effectivePage; });
-      });
-    }
-    final start = effectivePage * _pageSize;
-    final end = (start + _pageSize).clamp(0, allItems.length);
-    final transactions = allItems.sublist(start, end);
+    final transactions = allItems;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Column(children: [
-          SingleChildScrollView(
-            child: SizedBox(
-              width: double.infinity,
-              child: DataTable(dividerThickness: 0,
-                headingRowColor: WidgetStateProperty.all(const Color(0xFF6C8EEF)),
-                headingTextStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                  color: Colors.white,
-                ),
-                dataTextStyle: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textPrimary,
-                ),
-                columnSpacing: 20,
-                horizontalMargin: 16,
-                headingRowHeight: 42,
-                columns: const [
-                  DataColumn(label: Text('S NO.')),
-                  DataColumn(label: Text('PAY NO')),
-                  DataColumn(label: Text('STUDENT')),
-                  DataColumn(label: Text('AMOUNT')),
-                  DataColumn(label: Text('CURRENCY')),
-                  DataColumn(label: Text('METHOD')),
-                  DataColumn(label: Text('REFERENCE')),
-                  DataColumn(label: Text('DATE')),
-                  DataColumn(label: Text('STATUS')),
-                  DataColumn(label: Text('DOWNLOAD RECEIPT')),
-                ],
-                rows: List.generate(transactions.length, (i) {
-                  final t = transactions[i];
-                  final stuName = _getStudentName(t);
-                  final statusColor = isPaid ? Colors.green : Colors.red;
-                  final statusText = isPaid ? 'Paid' : 'Failed';
-                  final date = isPaid ? t.paydate : t.createdat;
-
-                  return DataRow(
-                    color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF2F6FA)),
-                    cells: [
-                      DataCell(Text('${start + i + 1}')),
-                      DataCell(Text(t.paynumber ?? '${t.payId}')),
-                      DataCell(
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 180),
-                          child: Text(
-                            stuName,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(
-                        t.transtotalamount.toStringAsFixed(2),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      )),
-                      DataCell(Text(t.transcurrency)),
-                      DataCell(Text(t.paymethod ?? '-')),
-                      DataCell(
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 160),
-                          child: Text(
-                            t.payreference ?? '-',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(
-                        date != null
-                            ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}'
-                            : '-',
-                      )),
-                      DataCell(Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      )),
-                      DataCell(t.isSuccess ? _buildDownloadButton(t) : const SizedBox.shrink()),
-                    ],
-                  );
-                }),
-              ),
-            ),
-          ),
-          _buildPaginationControls(effectivePage, totalPages, (p) => setState(() {
-            if (isPaid) _paidPage = p; else _failedPage = p;
-          })),
-        ]),
+    return SingleChildScrollView(
+      child: DataTable(
+        dividerThickness: 0,
+        headingRowColor: WidgetStateProperty.all(const Color(0xFF6C8EEF)),
+        headingTextStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.sp, color: Colors.white),
+        dataTextStyle: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary),
+        columnSpacing: 20,
+        horizontalMargin: 16,
+        headingRowHeight: 42,
+        columns: const [
+          DataColumn(label: Text('S NO.')),
+          DataColumn(label: Text('PAY NO')),
+          DataColumn(label: Text('STUDENT')),
+          DataColumn(label: Text('AMOUNT')),
+          DataColumn(label: Text('CURRENCY')),
+          DataColumn(label: Text('METHOD')),
+          DataColumn(label: Text('REFERENCE')),
+          DataColumn(label: Text('DATE')),
+          DataColumn(label: Text('STATUS')),
+          DataColumn(label: Text('DOWNLOAD RECEIPT')),
+        ],
+        rows: List.generate(transactions.length, (i) {
+          final t = transactions[i];
+          final stuName = _getStudentName(t);
+          final statusColor = isPaid ? Colors.green : Colors.red;
+          final statusText = isPaid ? 'Paid' : 'Failed';
+          final date = isPaid ? t.paydate : t.createdat;
+          return DataRow(
+            color: WidgetStateProperty.all(i.isEven ? Colors.white : const Color(0xFFF2F6FA)),
+            cells: [
+              DataCell(Text('${i + 1}')),
+              DataCell(Text(t.paynumber ?? '${t.payId}')),
+              DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 180), child: Text(stuName, overflow: TextOverflow.ellipsis))),
+              DataCell(Text(t.transtotalamount.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.w600))),
+              DataCell(Text(t.transcurrency)),
+              DataCell(Text(t.paymethod ?? '-')),
+              DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 160), child: Text(t.payreference ?? '-', overflow: TextOverflow.ellipsis))),
+              DataCell(Text(date != null ? '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}' : '-')),
+              DataCell(Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: statusColor.shade50, borderRadius: BorderRadius.circular(8.r)),
+                child: Text(statusText, style: TextStyle(color: statusColor.shade700, fontWeight: FontWeight.w600, fontSize: 13.sp)),
+              )),
+              DataCell(t.isSuccess ? _buildDownloadButton(t) : const SizedBox.shrink()),
+            ],
+          );
+        }),
       ),
     );
   }
