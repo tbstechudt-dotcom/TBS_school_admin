@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/app_routes.dart';
 import '../../utils/auth_provider.dart';
+import '../auth/activation_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,13 +39,30 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateToNextScreen() async {
     await Future.delayed(const Duration(seconds: 4));
     if (!mounted) return;
+
+    // Check if app is activated first
+    final activated = await ActivationScreen.isActivated();
+    if (!mounted) return;
+
+    if (!activated) {
+      Navigator.pushReplacementNamed(context, AppRoutes.activation);
+      return;
+    }
+
     final auth = context.read<AuthProvider>();
     final loggedIn = await auth.tryAutoLogin();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(
-      context,
-      loggedIn ? AppRoutes.dashboard : AppRoutes.onboarding,
-    );
+
+    if (loggedIn) {
+      // Check subscription status after login
+      if (auth.subscriptionActive) {
+        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.subscriptionExpired);
+      }
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+    }
   }
 
   @override
@@ -71,11 +90,11 @@ class _SplashScreenState extends State<SplashScreen>
                   animation: _pulseController,
                   builder: (context, child) {
                     return Container(
-                      width: 120,
-                      height: 120,
+                      width: 120.w,
+                      height: 120.h,
                       decoration: BoxDecoration(
                         color: AppColors.accent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(32),
+                        borderRadius: BorderRadius.circular(32.r),
                         border: Border.all(
                           color: AppColors.accent.withValues(
                             alpha: 0.3 + (_pulseController.value * 0.2),
@@ -92,9 +111,9 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.school_rounded,
-                        size: 60,
+                        size: 60.sp,
                         color: AppColors.accent,
                       ),
                     );
@@ -102,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               // App Name
               FadeInUp(
@@ -113,12 +132,12 @@ class _SplashScreenState extends State<SplashScreen>
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -1,
+                        letterSpacing: -1.w,
                       ),
                 ),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
 
               FadeInUp(
                 delay: const Duration(milliseconds: 600),
@@ -127,7 +146,7 @@ class _SplashScreenState extends State<SplashScreen>
                   'School Administration Platform',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.textLight.withValues(alpha: 0.8),
-                        letterSpacing: 1,
+                        letterSpacing: 1.w,
                       ),
                 ),
               ),
@@ -141,12 +160,12 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   children: [
                     SizedBox(
-                      width: 200,
+                      width: 200.w,
                       child: AnimatedBuilder(
                         animation: _progressController,
                         builder: (context, child) {
                           return ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(4.r),
                             child: LinearProgressIndicator(
                               value: _progressController.value,
                               backgroundColor:
@@ -154,13 +173,13 @@ class _SplashScreenState extends State<SplashScreen>
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 AppColors.accent.withValues(alpha: 0.8),
                               ),
-                              minHeight: 3,
+                              minHeight: 3.h,
                             ),
                           );
                         },
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     Text(
                       'Initializing...',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -184,7 +203,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
             ],
           ),
         ),

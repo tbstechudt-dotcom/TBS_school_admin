@@ -9,6 +9,22 @@ import '../models/fee_model.dart';
 class SupabaseService {
   static SupabaseClient get client => Supabase.instance.client;
 
+  // ==================== LICENSE ====================
+
+  /// Verify a license key against the institutionyear table
+  static Future<Map<String, dynamic>> verifyLicenseKey(String licenseKey) async {
+    try {
+      final result = await client.rpc('verify_license_key', params: {
+        'p_license_key': licenseKey.trim(),
+      });
+      debugPrint('License verification result: $result');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      debugPrint('License verification error: $e');
+      return {'valid': false, 'message': 'Connection error. Please try again.'};
+    }
+  }
+
   // ==================== AUTH ====================
 
   /// Login institution user by email, returns user if found
@@ -42,6 +58,46 @@ class SupabaseService {
     } catch (e) {
       debugPrint('Login error: $e');
       return null;
+    }
+  }
+
+  // ==================== SUBSCRIPTION ====================
+
+  /// Check if institution has an active subscription year with valid license key
+  /// Returns (isActive, yearLabel, endDate) based on institutionyear table
+  static Future<({bool isActive, String? yearLabel, DateTime? endDate})> checkSubscription(int insId) async {
+    try {
+      final now = DateTime.now().toIso8601String().split('T').first;
+      final result = await client
+          .from('institutionyear')
+          .select('yrlabel, iyrstadate, iyrenddate, iyearsubstatus, iyearlicencekey')
+          .eq('ins_id', insId)
+          .lte('iyrstadate', now)
+          .gte('iyrenddate', now)
+          .eq('iyearsubstatus', 1)
+          .not('iyearlicencekey', 'is', null)
+          .maybeSingle();
+
+      if (result == null) {
+        return (isActive: false, yearLabel: null, endDate: null);
+      }
+
+      // Verify the license key is not empty
+      final licenseKey = result['iyearlicencekey'] as String?;
+      if (licenseKey == null || licenseKey.trim().isEmpty) {
+        return (isActive: false, yearLabel: null, endDate: null);
+      }
+
+      return (
+        isActive: true,
+        yearLabel: result['yrlabel'] as String?,
+        endDate: result['iyrenddate'] != null
+            ? DateTime.parse(result['iyrenddate'].toString())
+            : null,
+      );
+    } catch (e) {
+      debugPrint('Subscription check error: $e');
+      return (isActive: false, yearLabel: null, endDate: null);
     }
   }
 
@@ -698,45 +754,57 @@ class SupabaseService {
       }
       if (demandList.isEmpty) return [];
 
-      // Collect unique pay_ids and fetch paydate
+      // Collect unique pay_ids and stu_ids
       final payIds = demandList
           .map((d) => d['pay_id'])
           .where((id) => id != null)
           .toSet()
           .toList();
-      final Map<int, String> payDateMap = {};
-      for (var i = 0; i < payIds.length; i += 500) {
-        final chunk = payIds.sublist(i, (i + 500).clamp(0, payIds.length));
-        final payRows = await client
-            .from('payment')
-            .select('pay_id, paydate')
-            .inFilter('pay_id', chunk);
-        for (final row in (payRows as List)) {
-          final id = row['pay_id'] as int?;
-          final date = row['paydate']?.toString();
-          if (id != null && date != null) payDateMap[id] = date;
-        }
-      }
-
-      // Collect unique stu_ids and fetch student names
       final stuIds = demandList
           .map((d) => d['stu_id'])
           .where((id) => id != null)
           .toSet()
           .toList();
+
+      // Fetch payment dates and student names in parallel
+      final Map<int, String> payDateMap = {};
       final Map<int, String> stuNameMap = {};
+
+      final enrichFutures = <Future>[];
+
+      // Payment date futures
+      for (var i = 0; i < payIds.length; i += 500) {
+        final chunk = payIds.sublist(i, (i + 500).clamp(0, payIds.length));
+        enrichFutures.add(client
+            .from('payment')
+            .select('pay_id, paydate')
+            .inFilter('pay_id', chunk)
+            .then((payRows) {
+          for (final row in (payRows as List)) {
+            final id = row['pay_id'] as int?;
+            final date = row['paydate']?.toString();
+            if (id != null && date != null) payDateMap[id] = date;
+          }
+        }));
+      }
+
+      // Student name futures
       for (var i = 0; i < stuIds.length; i += 500) {
         final chunk = stuIds.sublist(i, (i + 500).clamp(0, stuIds.length));
-        final stuRows = await client
+        enrichFutures.add(client
             .from('students')
             .select('stu_id, stuname')
-            .inFilter('stu_id', chunk);
-        for (final row in (stuRows as List)) {
-          final id = row['stu_id'] as int?;
-          final name = row['stuname']?.toString();
-          if (id != null && name != null) stuNameMap[id] = name;
-        }
+            .inFilter('stu_id', chunk)
+            .then((stuRows) {
+          for (final row in (stuRows as List)) {
+            final id = row['stu_id'] as int?;
+            final name = row['stuname']?.toString();
+            if (id != null && name != null) stuNameMap[id] = name;
+          }
+        }));
       }
+
+      await Future.wait(enrichFutures);
 
       // Enrich demand rows with paydate and stuname
       for (final d in demandList) {
