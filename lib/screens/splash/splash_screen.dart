@@ -6,7 +6,6 @@ import '../../utils/app_theme.dart';
 import '../../utils/app_routes.dart';
 import '../../utils/auth_provider.dart';
 
-
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
